@@ -1,5 +1,11 @@
 /* user_settings.h : custom configuration for wolfcrypt/wolfSSL */
 
+#ifndef USER_SETTINGS_H
+#define USER_SETTINGS_H
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 /* System */
 #ifndef WOLFSSL_RIOT_OS
@@ -287,3 +293,9 @@ int strncasecmp(const char *s1, const char * s2, unsigned int sz);
     #define HAVE_TLS_EXTENSIONS
     #define BUILD_TLS_AES_128_GCM_SHA256
 #endif
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif /* USER_SETTINGS_H */
