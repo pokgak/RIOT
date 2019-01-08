@@ -1,3 +1,30 @@
+/*
+ * Copyright (C) 2019 HAW Hamburg
+ *
+ * This file is subject to the terms and conditions of the GNU Lesser
+ * General Public License v2.1. See the file LICENSE in the top level
+ * directory for more details.
+ */
+
+/**
+ * @defgroup    net_sock_dtls    DTLS sock API
+ * @ingroup     net_sock
+ * @brief       Sock submodule for DTLS
+ * @{
+ *
+ * @file
+ * @brief   DTLS sock definitions
+ *
+ * @author  Aiman Ismail <muhammadaimanbin.ismail@haw-hamburg.de>
+ */
+
+#ifndef NET_SOCK_DTLS_H
+#define NET_SOCK_DTLS_H
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include "net/sock/udp.h"
 
 /**
@@ -8,15 +35,7 @@
 #define DTLSv12_SERVER
 #define DTLSv12_CLIENT
 
-typedef struct sock_dtls {
-    sock_udp_t *udp_sock;
-    /* TODO */
-} sock_dtls_t;
-
-typedef struct sock_dtls_ep {
-    sock_udp_ep_t *ep;
-    /* TODO */
-} sock_dtls_ep_t;
+typedef struct sock_dtls sock_dtls_t;
 
 /**
  * @brief Creates a new DTLS sock object
@@ -89,3 +108,12 @@ ssize_t sock_dtls_send(sock_dtls_t *sock, const void *data, size_t len,
  * @return 0 on success
  */
 int sock_dtls_destroy(sock_dtls_t *sock);
+
+#include "sock_dtls_types.h"
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif /* NET_SOCK_DTLS_H */
+/** @} */

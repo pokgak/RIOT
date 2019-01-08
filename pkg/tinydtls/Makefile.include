@@ -1,6 +1,7 @@
 PKG_BUILDDIR ?= $(PKGDIRBASE)/tinydtls
 
 INCLUDES += -I$(PKG_BUILDDIR)
+INCLUDES += -I$(RIOTBASE)/pkg/tinydtls/include
 
 ifeq ($(TOOLCHAIN), llvm)
   CFLAGS += -Wno-gnu-zero-variadic-macro-arguments -Wno-unused-function
