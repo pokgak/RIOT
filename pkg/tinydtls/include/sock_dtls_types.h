@@ -32,7 +32,20 @@ extern "C" {
 
 struct sock_dtls {
     sock_udp_t *udp_sock;
-    /* TODO */
+    dtls_context_t context;
+};
+
+/* Contains security and handshake parameters of a client */
+struct sock_dtls_session {
+    sock_udp_ep_t   remote;
+    dtls_peer_t     peer;
+};
+
+struct sock_dtls_queue {
+    struct sock_dtls_session *array;
+    mutex_t mutex;
+    unsigned short len;
+    unsigned short used;
 };
 
 #ifdef __cplusplus
