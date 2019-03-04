@@ -30,15 +30,21 @@ extern "C" {
 
 #include "net/sock/udp.h"
 
+#ifndef SOCK_DTLS_MBOX_SIZE
+#define SOCK_DTLS_MBOX_SIZE     (8)
+#endif
+
 struct sock_dtls {
+    dtls_context_t *dtls_ctx;
     sock_udp_t *udp_sock;
-    dtls_context_t context;
+    struct sock_dtls_queue *queue;
+    mbox_t mbox;
+    msg_t mbox_queue[SOCK_DTLS_MBOX_SIZE];
 };
 
-/* Contains security and handshake parameters of a client */
 struct sock_dtls_session {
-    sock_udp_ep_t   remote;
-    dtls_peer_t     peer;
+    sock_udp_ep_t   *remote_ep;
+    dtls_peer_t     *peer;
 };
 
 struct sock_dtls_queue {
