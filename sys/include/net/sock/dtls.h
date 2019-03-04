@@ -87,7 +87,7 @@ int sock_dtls_establish_session(sock_dtls_t *sock, sock_udp_ep_t *ep,
  * @return 0 on success.
  * @return value < 0 on error
  */
-int sock_dtls_close_session(sock_dtls_t *sock);
+int sock_dtls_close_session(sock_dtls_t *sock, sock_dtls_session_t *session);
 
 /**
  * @brief Decrypts and reads a message from a remote peer.
