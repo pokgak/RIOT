@@ -1,36 +1,48 @@
-#include "net/sock/dtls.h"
-#ifdef MODULE_SOCK_DTLS_TINYDTLS
+#include "dtls.h"
 #include "tinydtls/dtls.h"
-#endif
+#include "net/sock/dtls.h"
 
-/**
- * NOTES
- * =====
- * 
- * # TinyDTLS
- * 
- */
+#define RCV_BUFFER (512)
 
-/* Called by autoinit. 
- * Initializes the memory management.
- */
-int sock_dtls_init() {
-    /* tinyDTLS */
-    dtls_init();
-    /* initialize PSK params */
+static dtls_handler_t _dtls_handler = {
+    .event = _event,
+#ifdef DTLS_PSK
+    .get_psk_info = _get_psk_info,
+#endif /* DTLS_PSK */
+#ifdef DTLS_ECC
+    .get_ecdsa_key = _get_ecdsa_key,
+    .verify_ecdsa_key = _verify_ecdsa_key,
+#endif /* DTLS_ECC */
+    .write = _write,
+    .read = _read,
+};
 
+int sock_dtls_create(sock_dtls_t *sock, sock_udp_t *udp_sock, unsigned method)
+{
+    (void)method;
+    assert(sock && udp_sock);
+    sock->udp_sock = udp_sock;
+    sock->dtls_ctx = dtls_new_context(sock);
+    sock->queue = NULL;
+    if (!sock->dtls_ctx) {
+        DEBUG("Error while getting a DTLS context\n");
+        return -1;
+    }
+    mbox_init(&sock->mbox, sock->mbox_queue, SOCK_DTLS_MBOX_SIZE);
+    dtls_set_handler(sock->dtls_ctx, &_dtls_handler);
+    return 0;
 }
 
-int sock_dtls_create(sock_dtls_t *sock, sock_udp_t *udp_sock, unsigned method) {
-    /* tinyDTLS */
-    dtls_new_context();
+void sock_dtls_init_server(sock_dtls_t *sock, sock_dtls_queue_t *queue,
+                           sock_dtls_session_t *queue_array, unsigned len)
+{
+    queue->array = queue_array;
+    queue->len = len;
+    queue->used = 0;
+    //queue->mutex = NULL;
+    sock->queue = queue;
 }
 
-void sock_dtls_init_server(sock_dtls_t *sock) {
-    /* tinyDTLS */
-    dtls_set_handler();
-    // dtls_connect() / dtls_connect_peer();     /* remote NULL */
-}
 
 int sock_dtls_establish_session(sock_dtls_t *sock, sock_dtls_ep_t *ep) {
     /* tinyDTLS */
