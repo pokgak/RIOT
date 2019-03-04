@@ -43,36 +43,55 @@ void sock_dtls_init_server(sock_dtls_t *sock, sock_dtls_queue_t *queue,
     sock->queue = queue;
 }
 
+int sock_dtls_establish_session(sock_dtls_t *sock, sock_udp_ep_t *ep,
+                                sock_dtls_session_t *session)
+{
+    uint8_t rcv_buffer[RCV_BUFFER];
+    msg_t msg;
+    session_t dtls_session;
 
-int sock_dtls_establish_session(sock_dtls_t *sock, sock_dtls_ep_t *ep) {
-    /* tinyDTLS */
-    dtls_set_handler();
-    dtls_connect() / dtls_connect_peer();   /* remote not null */
-    
-    dtls_get_peer();
-    dtls_reset_peer();
-    dtls_peer_state();
+    /* get a tinydtls session (remote party to connect to) */
+    // FIXME: change name of sock_dtls_session_t to not confused with session_t from tinydtls
+    memcpy(dtls_session.addr, &ep->addr.ipv6, sizesof(ipv6_addr_t));
+    dtls_session.ifindex = ep->netif;
+    dtls_session.size = sizeof(session->peer->session.addr);
+
+    session->peer = dtls_new_peer(&dtls_session);
+    session->remote_ep = ep;
+
+    /* start a handshake */
+    if (dtls_connect(sock->dtls_ctx, &session->peer->session) < 0) {
+        DEBUG("Error establishing a session\n");
+        return -1;
+    }
+    DEBUG("Waiting for ClientHello to be sent\n");
+    mbox_get(&sock->mbox, &msg);
+    if (msg.type != DTLS_EVENT_CONNECT) {
+        DEBUG("DTLS handshake was not started\n");
+        return -1;
+    }
+    DEBUG("ClientHello sent, waiting for handshake\n");
+    /* receive packages from sock until the session is established */
+    while (!mbox_try_get(&sock->mbox, &msg)) {
+        ssize_t rcv_len = sock_udp_recv(sock->udp_sock, rcv_buffer,
+                                        sizeof(rcv_buffer), SOCK_NO_TIMEOUT,
+                                        &session->remote_ep);
+        if (rcv_len >= 0) {
+            dtls_handle_message(sock->dtls_ctx, &session->peer->session, rcv_buffer,
+                                rcv_len);
+        }
+    }
+
+    if (msg.type == DTLS_EVENT_CONNECTED) {
+        DEBUG("DTLS handshake successful\n");
+        return 0;
+    }
+    else {
+        DEBUG("DTLS handshake was not successful\n");
+        return -1;
+    }
 }
 
-int sock_dtls_close_session(sock_dtls_t *sock) {
-    /* tinyDTLS */
-    dtls_close();
-
-}
-
-ssize_t sock_dtls_recv(sock_dtls_t *sock, sock_dtls_ep_t *ep, void *data, size_t maxlen) {
-    /* tinyDTLS */
-    dtls_handle_message();
-}
-
-int sock_dtls_send(sock_dtls_t *sock, sock_dtls_ep_t *ep, const void *data, size_t len) {
-    /* tinyDTLS */
-    dtls_write();
-
-}
-
-int sock_dtls_destroy(sock_dtls_t *sock) {
-    /* tinyDTLS */
-    dtls_free_context();
-
-}
+int sock_dtls_close_session(sock_dtls_t *sock, sock_dtls_session_t *session)
+{
+    return dtls_close(sock->dtls_ctx, &session->peer->session);
