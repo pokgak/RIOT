@@ -38,8 +38,20 @@ extern "C" {
 
 typedef struct sock_dtls sock_dtls_t;
 
+/**
+ * @brief Information about the established session with
+ *        the remote endpoint. Used when sending and
+ *        receiving data to the endpoint
+ */
 typedef struct sock_dtls_session sock_dtls_session_t;
 
+/**
+ * @brief Queue to keep track of all established sessions.
+ *
+ * // TODO: do we need this information? User can manually keep
+ * track all the established session by using the returned sock_dtls_session_t
+ * from sock_dtls_establish_session()
+ */
 typedef struct sock_dtls_queue sock_dtls_queue_t;
 
 /**

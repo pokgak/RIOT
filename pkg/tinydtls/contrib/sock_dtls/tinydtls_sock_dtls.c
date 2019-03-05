@@ -4,6 +4,9 @@
 
 #define RCV_BUFFER (512)
 
+static int _read(struct dtls_context_t *ctx, session_t *session, uint8_t *buf,
+                 size_t len);
+
 static dtls_handler_t _dtls_handler = {
     .event = _event,
 #ifdef DTLS_PSK
@@ -16,6 +19,26 @@ static dtls_handler_t _dtls_handler = {
     .write = _write,
     .read = _read,
 };
+
+static int _read(struct dtls_context_t *ctx, session_t *session, uint8_t *buf,
+                 size_t len)
+{
+    msg_t msg = { .type = DTLS_EVENT_READ };
+    sock_dtls_t *sock = dtls_get_app_data(ctx);
+    int res = 1;
+
+    DEBUG("Decrypted message arrived\n");
+    if (sock->buflen < len && sock->buf) {
+        DEBUG("Not enough place on buffer\n");
+        res = -1;
+    }
+    else {
+        sock->buflen = len;
+        sock->buf = buf;
+    }
+    mbox_put(&sock->mbox, &msg);
+    return res;
+}
 
 int sock_dtls_create(sock_dtls_t *sock, sock_udp_t *udp_sock, unsigned method)
 {
@@ -95,3 +118,53 @@ int sock_dtls_establish_session(sock_dtls_t *sock, sock_udp_ep_t *ep,
 int sock_dtls_close_session(sock_dtls_t *sock, sock_dtls_session_t *session)
 {
     return dtls_close(sock->dtls_ctx, &session->peer->session);
+}
+
+ssize_t sock_dtls_recv(sock_dtls_t *sock, sock_dtls_session_t *remote,
+                       void *data, size_t max_len, uint32_t timeout)
+{
+    ssize_t res;
+    msg_t msg;
+
+    // what if remote is NULL? can remote be NULL?
+    // no cannot we need a session_t to fill in the information of remote ep of received data
+    assert(sock && data && remote);
+
+    while (1) {
+        // should we include receive sock
+        res = sock_udp_recv(sock->udp_sock, data, max_len, timeout,
+                            &remote->remote_ep);
+        if (res > 0) {
+            // the function uses session to find peer, if no matching found then no peer, then fail and
+            // return < 0
+            // dtls_handle_message() uses the same buffer given to put the decrypted data, just
+            // points to slightly vorne due to record header
+            // TODO: handle if return < 1?
+            _ep_to_session(&remote->session, &remote->remote-ep);
+            dtls_handle_message(sock->dtls_ctx, &remote->session,
+                                (uint8_t *)data, res);
+
+            // blocks until we got a decrypted message OR TODO timeout
+            while (msg.type != DTLS_EVENT_READ) {
+                mbox_get(&sock->mbox, &msg);
+            }
+            data = sock->buf;
+            return sock->buflen;
+        }
+        // TODO: handle errors from sock_udp_recv()
+        else {
+            DEBUG("Error receiving UDP packet: %d\n", res);
+            goto error_out;
+        }
+    }
+
+error_out:
+    return res;
+}
+
+static void _ep_to_session(session_t *session, sock_udp_ep_t *ep) {
+    //session->port = ep->port; // if WITH_CONTIKI not defined, then no port
+    session->size = sizeof(ipv6_addr_t);
+    session->ifindex = ep->netif;
+    memcpy(&session->addr, &ep->addr.ipv6, sizeof(ipv6_addr_t)); // can this be casted like that?
+}

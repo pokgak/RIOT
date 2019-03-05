@@ -40,11 +40,17 @@ struct sock_dtls {
     struct sock_dtls_queue *queue;
     mbox_t mbox;
     msg_t mbox_queue[SOCK_DTLS_MBOX_SIZE];
+    uint8_t *buf;
+    size_t buflen;
 };
 
+// what do i need to know about remote
+/**
+ * @brief Information about remote client connected to the server
+ */
 struct sock_dtls_session {
-    sock_udp_ep_t   *remote_ep;
-    dtls_peer_t     *peer;
+    sock_udp_ep_t   remote_ep;
+    session_t       dtls_session;
 };
 
 struct sock_dtls_queue {
