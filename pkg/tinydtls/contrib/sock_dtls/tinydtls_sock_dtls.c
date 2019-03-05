@@ -67,23 +67,23 @@ void sock_dtls_init_server(sock_dtls_t *sock, sock_dtls_queue_t *queue,
 }
 
 int sock_dtls_establish_session(sock_dtls_t *sock, sock_udp_ep_t *ep,
-                                sock_dtls_session_t *session)
+                                sock_dtls_session_t *remote)
 {
     uint8_t rcv_buffer[RCV_BUFFER];
     msg_t msg;
-    session_t dtls_session;
 
-    /* get a tinydtls session (remote party to connect to) */
+    assert(sock && ep && remote);
+
     // FIXME: change name of sock_dtls_session_t to not confused with session_t from tinydtls
-    memcpy(dtls_session.addr, &ep->addr.ipv6, sizesof(ipv6_addr_t));
-    dtls_session.ifindex = ep->netif;
-    dtls_session.size = sizeof(session->peer->session.addr);
-
-    session->peer = dtls_new_peer(&dtls_session);
-    session->remote_ep = ep;
+    /* prepare a dtls session (remote party to connect to) */
+    memset(remote, 0, sizeof(sock_dtls_session_t));
+    memcpy(&remote->remote_ep, ep, sizeof(sock_udp_ep_t));
+    memcpy(&remote->dtls_session.addr, &ep->addr.ipv6, sizesof(ipv6_addr_t));
+    remote->dtls_session.ifindex = ep->netif;
+    remote->dtls_session.size = sizeof(remote->dtls_session);
 
     /* start a handshake */
-    if (dtls_connect(sock->dtls_ctx, &session->peer->session) < 0) {
+    if (dtls_connect(sock->dtls_ctx, &remote->dtls_session) < 0) {
         DEBUG("Error establishing a session\n");
         return -1;
     }
@@ -94,13 +94,15 @@ int sock_dtls_establish_session(sock_dtls_t *sock, sock_udp_ep_t *ep,
         return -1;
     }
     DEBUG("ClientHello sent, waiting for handshake\n");
+    // can an application data sent to ep A (this ep) from ep B interrupt ongoing handshake
+    // between this ep (A) and other ep (C)?
     /* receive packages from sock until the session is established */
     while (!mbox_try_get(&sock->mbox, &msg)) {
         ssize_t rcv_len = sock_udp_recv(sock->udp_sock, rcv_buffer,
                                         sizeof(rcv_buffer), SOCK_NO_TIMEOUT,
-                                        &session->remote_ep);
+                                        &remote->remote_ep);
         if (rcv_len >= 0) {
-            dtls_handle_message(sock->dtls_ctx, &session->peer->session, rcv_buffer,
+            dtls_handle_message(sock->dtls_ctx, &remote->session, rcv_buffer,
                                 rcv_len);
         }
     }
@@ -115,9 +117,9 @@ int sock_dtls_establish_session(sock_dtls_t *sock, sock_udp_ep_t *ep,
     }
 }
 
-int sock_dtls_close_session(sock_dtls_t *sock, sock_dtls_session_t *session)
+int sock_dtls_close_session(sock_dtls_t *sock, sock_dtls_session_t *remote)
 {
-    return dtls_close(sock->dtls_ctx, &session->peer->session);
+    return dtls_close(sock->dtls_ctx, &remote->session);
 }
 
 ssize_t sock_dtls_recv(sock_dtls_t *sock, sock_dtls_session_t *remote,
@@ -160,6 +162,18 @@ ssize_t sock_dtls_recv(sock_dtls_t *sock, sock_dtls_session_t *remote,
 
 error_out:
     return res;
+}
+
+ssize_t sock_dtls_send(sock_dtls_t *sock, sock_dtls_session_t *remote,
+                       const void *data, size_t len)
+{
+
+}
+
+int sock_dtls_destroy(sock_dtls_t *sock)
+{
+    dtls_free_context(sock->dtls_ctx);
+    return 0;
 }
 
 static void _ep_to_session(session_t *session, sock_udp_ep_t *ep) {

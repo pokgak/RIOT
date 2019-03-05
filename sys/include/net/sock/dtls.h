@@ -83,7 +83,7 @@ void sock_dtls_init_server(sock_dtls_t *sock, sock_dtls_queue_t *queue,
  *
  * @param[in]  sock      DLTS sock to use
  * @param[in]  ep        Endpoint to establish session with
- * @param[out] session   The established session
+ * @param[out] remote    The established session, cannot be NULL
  *
  * @return 0 on success
  * @return value < 0 on error
@@ -94,19 +94,20 @@ int sock_dtls_establish_session(sock_dtls_t *sock, sock_udp_ep_t *ep,
 /**
  * @brief Close an existing DTLS session
  *
- * @param[in] sock      DTLS session to close
+ * @param[in] sock      sock, which the session is established on
+ * @param[in] remote    Remote session to close
  *
  * @return 0 on success.
  * @return value < 0 on error
  */
-int sock_dtls_close_session(sock_dtls_t *sock, sock_dtls_session_t *session);
+int sock_dtls_close_session(sock_dtls_t *sock, sock_dtls_session_t *remote);
 
 /**
  * @brief Decrypts and reads a message from a remote peer.
  *
  * @param[in] sock      DTLS sock to use
- * @param[out] remote   DTLS session of the received data.
- *                      May be `NULL`, if it is not required by the application
+ * @param[out] remote   Remote DTLS session of the received data
+ *                      Cannot be NULL
  * @param[out] buf      Pointer where the data should be stored
  * @param[in] maxlen    Maximum space available at @p data
  *
