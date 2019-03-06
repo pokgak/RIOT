@@ -4,8 +4,14 @@
 
 #define RCV_BUFFER (512)
 
+static int _write(struct dtls_context_t *ctx, session_t *session, uint8_t *buf,
+                  size_t len);
+
 static int _read(struct dtls_context_t *ctx, session_t *session, uint8_t *buf,
                  size_t len);
+
+static int _event(struct dtls_context_t *ctx, session_t *session,
+                  dtls_alert_level_t level, unsigned short code);
 
 static dtls_handler_t _dtls_handler = {
     .event = _event,
@@ -38,6 +44,52 @@ static int _read(struct dtls_context_t *ctx, session_t *session, uint8_t *buf,
     }
     mbox_put(&sock->mbox, &msg);
     return res;
+}
+
+static int _write(struct dtls_context_t *ctx, session_t *session, uint8_t *buf,
+                  size_t len)
+{
+    sock_dtls_t *sock = (sock_dtls_t *)dtls_get_app_data(ctx);
+    sock_udp_ep_t remote;
+
+    _session_to_udp_ep(session, &remote);
+    remote.family = AF_INET6;
+
+    // do we need remote?
+    // if client maybe not, because udp_sock already has a remote pointing
+    // to the server
+    // but as a server we remote MUST be valid and not NULL
+    // port must also not be 0
+    ssize_t res = sock_udp_send(sock->udp_sock, buf, len, &remote);
+    if (res <= 0) {
+        DEBUG("Error: Failed to send DTLS record: %d\n", res);
+    }
+    return res;
+}
+
+static int _event(struct dtls_context_t *ctx, session_t *session,
+           dtls_alert_level_t level, unsigned short code)
+{
+    (void)level;
+    (void)session;
+
+    sock_dtls_t *sock = dtls_get_app_data(ctx);
+    msg_t msg = { .type = code };
+#ifdef ENABLE_DEBUG
+    switch(code) {
+        case DTLS_EVENT_CONNECT:
+            DEBUG("Event connect\n");
+            break;
+        case DTLS_EVENT_CONNECTED:
+            DEBUG("Event connected\n");
+            break;
+        case DTLS_EVENT_RENEGOTIATE:
+            DEBUG("Event renegotiate\n");
+            break;
+    }
+#endif  /* ENABLE_DEBUG */
+    mbox_put(&sock->mbox, &msg);
+    return 0;
 }
 
 int sock_dtls_create(sock_dtls_t *sock, sock_udp_t *udp_sock, unsigned method)
@@ -188,7 +240,8 @@ ssize_t sock_dtls_recv(sock_dtls_t *sock, sock_dtls_session_t *remote,
 ssize_t sock_dtls_send(sock_dtls_t *sock, sock_dtls_session_t *remote,
                        const void *data, size_t len)
 {
-
+    assert(sock && remote && data);
+    return dtls_write(sock->dtls_ctx, &remote->session, (uint8_t *)data, len);
 }
 
 int sock_dtls_destroy(sock_dtls_t *sock)
@@ -198,8 +251,15 @@ int sock_dtls_destroy(sock_dtls_t *sock)
 }
 
 static void _ep_to_session(session_t *session, sock_udp_ep_t *ep) {
-    //session->port = ep->port; // if WITH_CONTIKI not defined, then no port
+    session->port = ep->port; // only if WITH_CONTIKI is set
     session->size = sizeof(ipv6_addr_t);
     session->ifindex = ep->netif;
     memcpy(&session->addr, &ep->addr.ipv6, sizeof(ipv6_addr_t)); // can this be casted like that?
+}
+
+static void _session_to_udp_ep(const session_t *session, sock_udp_ep_t *ep)
+{
+    ep->port = session->port; // only if WITH_CONTIKI is set
+    ep->netif = session->ifindex;
+    memcpy(&ep->addr.ipv6, &session->addr, sizeof(ipv6_addr_t));
 }
