@@ -110,6 +110,11 @@ int sock_dtls_close_session(sock_dtls_t *sock, sock_dtls_session_t *remote);
  *                      Cannot be NULL
  * @param[out] buf      Pointer where the data should be stored
  * @param[in] maxlen    Maximum space available at @p data
+ * @param[in] timeout   Timeout for receive in microseconds.
+ *                      If 0 and no data is available, the function returns
+ *                      immediately.
+ *                      May be SOCK_NO_TIMEOUT for no timeout (wait until data
+ *                      is available).
  *
  * @return The number of bytes received on success
  * @return value < 0 on error
