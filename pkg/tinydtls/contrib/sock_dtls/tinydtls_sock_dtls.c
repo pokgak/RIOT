@@ -7,6 +7,8 @@
 
 #define RCV_BUFFER (512)
 
+static void _timeout_callback(void *arg);
+
 #ifdef DTLS_PSK
 static int _get_psk_info(struct dtls_context_t *ctx, const session_t *session,
                          dtls_credentials_type_t type,
@@ -294,7 +296,7 @@ ssize_t sock_dtls_recv(sock_dtls_t *sock, sock_dtls_session_t *remote,
     assert(sock && data && remote);
 
     if ((timeout != SOCK_NO_TIMEOUT) && (timeout != 0)) {
-        timeout_timer.callback = _callback_put;
+        timeout_timer.callback = _timeout_callback;
         timeout_timer.arg = sock;
         xtimer_set(&timeout_timer, timeout);
     }
@@ -370,4 +372,11 @@ static void _session_to_udp_ep(const session_t *session, sock_udp_ep_t *ep)
     ep->port = session->port; // only if WITH_CONTIKI is set
     ep->netif = session->ifindex;
     memcpy(&ep->addr.ipv6, &session->addr, sizeof(ipv6_addr_t));
+}
+
+static void _timeout_callback(void *arg)
+{
+    msg_t timeout_msg = { .type = _TIMEOUT_MSG_TYPE };
+    sock_dtls_t *sock = arg;
+    mbox_try_put(&sock->mbox, &timeout_msg);
 }
