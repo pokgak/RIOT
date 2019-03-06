@@ -2,7 +2,28 @@
 #include "tinydtls/dtls.h"
 #include "net/sock/dtls.h"
 
+#define ENABLE_DEBUG (1)
+#include "debug.h"
+
 #define RCV_BUFFER (512)
+
+#ifdef DTLS_PSK
+static int _get_psk_info(struct dtls_context_t *ctx, const session_t *session,
+                         dtls_credentials_type_t type,
+                         const unsigned char *id, size_t id_len,
+                         unsigned char *result, size_t result_length);
+#endif /* DTLS_PSK */
+
+#ifdef DTLS_ECC
+static int _get_ecdsa_key(struct dtls_context_t *ctx, const session_t *session,
+                          const dtls_ecdsa_key_t **result);
+
+static int _verify_ecdsa_key(struct dtls_context_t *ctx,
+                             const session_t *session,
+                             const unsigned char *other_pub_x,
+                             const unsigned char *other_pub_y,
+                             size_t key_size);
+#endif /* DTLS_ECC */
 
 static int _write(struct dtls_context_t *ctx, session_t *session, uint8_t *buf,
                   size_t len);
@@ -91,6 +112,93 @@ static int _event(struct dtls_context_t *ctx, session_t *session,
     mbox_put(&sock->mbox, &msg);
     return 0;
 }
+
+#ifdef DTLS_PSK
+static int _get_psk_info(struct dtls_context_t *ctx, const session_t *session,
+                         dtls_credentials_type_t type,
+                         const unsigned char *id, size_t id_len,
+                         unsigned char *result, size_t result_length)
+{
+    (void)session;
+    sock_dtls_t *sock = (sock_dtls_t *)dtls_get_app_data(ctx);
+    sock_dtls_session_t _session;
+    sock_udp_ep_t ep;
+
+    _session_to_udp_ep(session, &ep);
+    _session.remote_ep = &ep;
+    memcpy(&_session.dtls_session, session, sizeof(session_t));
+    switch(type) {
+        case DTLS_PSK_HINT:
+            if (sock->psk.psk_hint_storage) {
+                return sock->psk.psk_hint_storage(sock, &_session, result,
+                                                  result_length);
+            }
+            return 0;
+
+        case DTLS_PSK_IDENTITY:
+            DEBUG("psk id request\n");
+            if (sock->psk.psk_id_storage) {
+                return sock->psk.psk_id_storage(sock, &_session, id, id_len,
+                                                result, result_length);
+            }
+            return 0;
+        case DTLS_PSK_KEY:
+            if (sock->psk.psk_key_storage) {
+                return sock->psk.psk_key_storage(sock, &_session, id, id_len,
+                                                 result, result_length);
+            }
+            return 0;
+        default:
+            DEBUG("Unsupported request type: %d\n", type);
+            return 0;
+    }
+}
+#endif
+
+#ifdef DTLS_ECC
+static int _get_ecdsa_key(struct dtls_context_t *ctx, const session_t *session,
+                          const dtls_ecdsa_key_t **result)
+{
+    dtls_ecdsa_key_t *key;
+    sock_dtls_t *sock = (sock_dtls_t *)dtls_get_app_data(ctx);
+    sock_dtls_session_t _session;
+    sock_udp_ep_t ep;
+    if (sock->ecdsa.ecdsa_storage) {
+        _session_to_udp_ep(session, &ep);
+        _session.remote_ep = &ep;
+        memcpy(&_session.dtls_session, session, sizeof(session_t));
+        if (sock->ecdsa.ecdsa_storage(sock, &_session, &key) < 0) {
+            DEBUG("Could not get the ECDSA key\n");
+            return -1;
+        }
+        *result = key;
+        return 0;
+    }
+    DEBUG("no ecdsa storage registered\n");
+    return -1;
+}
+
+static int _verify_ecdsa_key(struct dtls_context_t *ctx,
+                             const session_t *session,
+                             const unsigned char *other_pub_x,
+                             const unsigned char *other_pub_y, size_t key_size)
+{
+    sock_dtls_session_t _session;
+    sock_udp_ep_t ep;
+    sock_dtls_t *sock = (sock_dtls_t *)dtls_get_app_data(ctx);
+    if (sock->ecdsa.ecdsa_verify) {
+        _session_to_udp_ep(session, &ep);
+        _session.remote_ep = &ep;
+        memcpy(&_session.dtls_session, session, sizeof(session_t));
+        if (sock->ecdsa.ecdsa_verify(sock, &_session, other_pub_x, other_pub_y,
+                                     key_size)) {
+            DEBUG("Could not verify ECDSA public keys\n");
+            return -1;
+        }
+    }
+    return 0;
+}
+#endif /* DTLS_ECC */
 
 int sock_dtls_create(sock_dtls_t *sock, sock_udp_t *udp_sock, unsigned method)
 {
