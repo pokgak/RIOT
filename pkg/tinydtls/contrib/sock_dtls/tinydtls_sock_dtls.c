@@ -202,6 +202,14 @@ static int _verify_ecdsa_key(struct dtls_context_t *ctx,
 }
 #endif /* DTLS_ECC */
 
+int sock_dtls_init(void)
+{
+    dtls_init();
+    // TODO remove log
+    //dtls_set_log_level(6);
+    return 0;
+}
+
 int sock_dtls_create(sock_dtls_t *sock, sock_udp_t *udp_sock, unsigned method)
 {
     (void)method;
@@ -324,10 +332,10 @@ ssize_t sock_dtls_recv(sock_dtls_t *sock, sock_dtls_session_t *remote,
     // race condition between this and tinydtls _read callback?
     while (msg.type != DTLS_EVENT_READ || msg.type != _TIMEOUT_MSG_TYPE) {
         if (timeout != 0) {
-            mbox_get(sock->mbox, &msg);
+            mbox_get(&sock->mbox, &msg);
         }
         else {
-            if (!mbox_try_get(sock->mbox, &msg)) {
+            if (!mbox_try_get(&sock->mbox, &msg)) {
                 return -EAGAIN;
             }
         }
