@@ -129,39 +129,60 @@ ssize_t sock_dtls_recv(sock_dtls_t *sock, sock_dtls_session_t *remote,
     msg_t msg;
 
     // what if remote is NULL? can remote be NULL?
-    // no cannot we need a session_t to fill in the information of remote ep of received data
+    // no cannot we need a sock_udp_ep_t to fill in the information of remote ep of received data
+    // and dtls_handle_message() needs a filled session_t, that requires information from sock_udp_ep_t
     assert(sock && data && remote);
 
-    while (1) {
-        // should we include receive sock
-        res = sock_udp_recv(sock->udp_sock, data, max_len, timeout,
-                            &remote->remote_ep);
-        if (res > 0) {
-            // the function uses session to find peer, if no matching found then no peer, then fail and
-            // return < 0
-            // dtls_handle_message() uses the same buffer given to put the decrypted data, just
-            // points to slightly vorne due to record header
-            // TODO: handle if return < 1?
-            _ep_to_session(&remote->session, &remote->remote-ep);
-            dtls_handle_message(sock->dtls_ctx, &remote->session,
-                                (uint8_t *)data, res);
+    if ((timeout != SOCK_NO_TIMEOUT) && (timeout != 0)) {
+        timeout_timer.callback = _callback_put;
+        timeout_timer.arg = sock;
+        xtimer_set(&timeout_timer, timeout);
+    }
 
-            // blocks until we got a decrypted message OR TODO timeout
-            while (msg.type != DTLS_EVENT_READ) {
-                mbox_get(&sock->mbox, &msg);
-            }
-            data = sock->buf;
-            return sock->buflen;
+    res = sock_udp_recv(sock->udp_sock, data, max_len, timeout,
+                        &remote->remote_ep);
+    if (res < 0) {
+        DEBUG("Error receiving UDP packet: %d\n", res);
+        goto error_out;
+    }
+
+    // the function uses session to find peer, if no matching found then no peer, then fail and
+    // return < 0
+    // dtls_handle_message() uses the same buffer given to put the decrypted data, just
+    // points to slightly vorne due to record header
+    _ep_to_session(&remote->session, &remote->remote-ep);
+    res = dtls_handle_message(sock->dtls_ctx, &remote->session,
+                        (uint8_t *)data, res);
+    if (res < 0) {
+        DEBUG("Error decrypting message\n");
+        goto error_out;
+    }
+
+    // blocks until we got a decrypted message OR TODO timeout
+    // race condition between this and tinydtls _read callback?
+    while (msg.type != DTLS_EVENT_READ || msg.type != _TIMEOUT_MSG_TYPE) {
+        if (timeout != 0) {
+            mbox_get(sock->mbox, &msg);
         }
-        // TODO: handle errors from sock_udp_recv()
         else {
-            DEBUG("Error receiving UDP packet: %d\n", res);
-            goto error_out;
+            if (!mbox_try_get(sock->mbox, &msg)) {
+                return -EAGAIN;
+            }
         }
     }
 
-error_out:
-    return res;
+    switch (msg.type) {
+        case DTLS_EVENT_READ:
+            DEBUG("Message decrypted successfully\n");
+            data = sock->buf;
+            return sock->buflen;
+        case _TIMEOUT_MSG_TYPE:
+            DEBUG("Error timed out while decrpting message\n");
+            return -ETIMEDOUT;
+        default:
+            /* Falls through */
+            return -EINVAL;
+    }
 }
 
 ssize_t sock_dtls_send(sock_dtls_t *sock, sock_dtls_session_t *remote,
