@@ -302,13 +302,9 @@ ssize_t sock_dtls_recv(sock_dtls_t *sock, sock_dtls_session_t *remote,
 {
     ssize_t res;
     msg_t msg;
-
-    // what if remote is NULL? can remote be NULL?
-    // no cannot we need a sock_udp_ep_t to fill in the information of remote ep of received data
-    // and dtls_handle_message() needs a filled session_t, that requires information from sock_udp_ep_t
-    assert(sock && data && remote);
-
     xtimer_t timeout_timer;
+
+    assert(sock && data && remote);
 
     if ((timeout != SOCK_NO_TIMEOUT) && (timeout != 0)) {
         timeout_timer.callback = _timeout_callback;
@@ -316,23 +312,23 @@ ssize_t sock_dtls_recv(sock_dtls_t *sock, sock_dtls_session_t *remote,
         xtimer_set(&timeout_timer, timeout);
     }
 
+    uint32_t start_recv;
     while (1) {
-        //old = new;
-        //new = xtimer_now();
-        //timeout = timeout - (new - old);
+        start_recv = xtimer_now_usec();
         res = sock_udp_recv(sock->udp_sock, data, max_len, timeout,
                             &remote->remote_ep);
         if (res < 0) {
             DEBUG("Error receiving UDP packet: %d\n", res);
             return res;
         }
-        DEBUG("Got a UDP packet\n");
+        timeout = timeout - (xtimer_now_usec() - start_recv);
+        printf("timeout left: %u\n", timeout);
 
+        DEBUG("Got a UDP packet\n");
     
         _ep_to_session(&remote->remote_ep, &remote->dtls_session);
-        // TODO: add to session queue if server. What for?
         if (sock->role == DTLS_SERVER) {
-            // add to queue
+            // TODO: add to session queue if server. What for?
         }
 
         res = dtls_handle_message(sock->dtls_ctx, &remote->dtls_session,
@@ -347,6 +343,7 @@ ssize_t sock_dtls_recv(sock_dtls_t *sock, sock_dtls_session_t *remote,
         if (mbox_try_get(&sock->mbox, &msg)) {
             switch(msg.type) {
                 case DTLS_EVENT_READ:
+                    xtimer_remove(&timeout_timer);
                     memcpy(data, sock->buf, sock->buflen);
                     return sock->buflen;
                 case _TIMEOUT_MSG_TYPE:
@@ -355,6 +352,9 @@ ssize_t sock_dtls_recv(sock_dtls_t *sock, sock_dtls_session_t *remote,
                 default:
                     break;
             }
+        }
+        else if (timeout == 0) {
+            return -ETIMEDOUT;
         }
     }
 
