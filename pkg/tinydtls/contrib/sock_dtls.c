@@ -1,11 +1,11 @@
 #include "dtls.h"
-#include "tinydtls/dtls.h"
 #include "net/sock/dtls.h"
 
 #define ENABLE_DEBUG (1)
 #include "debug.h"
 
 #define RCV_BUFFER (512)
+#define _TIMEOUT_MSG_TYPE   (0x8474)    // FIXME: get more suitable value for this
 
 static void _timeout_callback(void *arg);
 
@@ -35,6 +35,9 @@ static int _read(struct dtls_context_t *ctx, session_t *session, uint8_t *buf,
 
 static int _event(struct dtls_context_t *ctx, session_t *session,
                   dtls_alert_level_t level, unsigned short code);
+static void _session_to_ep(const session_t *session, sock_udp_ep_t *ep);
+static void _ep_to_session(const sock_udp_ep_t *ep, session_t *session);
+
 
 static dtls_handler_t _dtls_handler = {
     .event = _event,
@@ -49,9 +52,12 @@ static dtls_handler_t _dtls_handler = {
     .read = _read,
 };
 
+#define DTLS_EVENT_READ 0x01DB
+
 static int _read(struct dtls_context_t *ctx, session_t *session, uint8_t *buf,
                  size_t len)
 {
+    (void)session;
     msg_t msg = { .type = DTLS_EVENT_READ };
     sock_dtls_t *sock = dtls_get_app_data(ctx);
     int res = 1;
@@ -75,12 +81,11 @@ static int _write(struct dtls_context_t *ctx, session_t *session, uint8_t *buf,
     sock_dtls_t *sock = (sock_dtls_t *)dtls_get_app_data(ctx);
     sock_udp_ep_t remote;
 
-    _session_to_udp_ep(session, &remote);
+    _session_to_ep(session, &remote);
     remote.family = AF_INET6;
 
     // do we need remote?
-    // if client maybe not, because udp_sock already has a remote pointing
-    // to the server
+    // yes, client may also need this
     // but as a server we remote MUST be valid and not NULL
     // port must also not be 0
     ssize_t res = sock_udp_send(sock->udp_sock, buf, len, &remote);
@@ -126,8 +131,9 @@ static int _get_psk_info(struct dtls_context_t *ctx, const session_t *session,
     sock_dtls_session_t _session;
     sock_udp_ep_t ep;
 
-    _session_to_udp_ep(session, &ep);
-    _session.remote_ep = &ep;
+    _session_to_ep(session, &ep);
+    //_session.remote_ep = &ep;
+    memcpy(&_session.remote_ep, &ep, sizeof(sock_udp_ep_t));
     memcpy(&_session.dtls_session, session, sizeof(session_t));
     switch(type) {
         case DTLS_PSK_HINT:
@@ -166,8 +172,9 @@ static int _get_ecdsa_key(struct dtls_context_t *ctx, const session_t *session,
     sock_dtls_session_t _session;
     sock_udp_ep_t ep;
     if (sock->ecdsa.ecdsa_storage) {
-        _session_to_udp_ep(session, &ep);
-        _session.remote_ep = &ep;
+        _session_to_ep(session, &ep);
+        //_session.remote_ep = &ep;
+        memcpy(&_session.remote_ep, &ep, sizeof(sock_udp_ep_t));
         memcpy(&_session.dtls_session, session, sizeof(session_t));
         if (sock->ecdsa.ecdsa_storage(sock, &_session, &key) < 0) {
             DEBUG("Could not get the ECDSA key\n");
@@ -189,8 +196,9 @@ static int _verify_ecdsa_key(struct dtls_context_t *ctx,
     sock_udp_ep_t ep;
     sock_dtls_t *sock = (sock_dtls_t *)dtls_get_app_data(ctx);
     if (sock->ecdsa.ecdsa_verify) {
-        _session_to_udp_ep(session, &ep);
-        _session.remote_ep = &ep;
+        _session_to_ep(session, &ep);
+        //_session.remote_ep = &ep;
+        memcpy(&_session.remote_ep, &ep, sizeof(sock_udp_ep_t));
         memcpy(&_session.dtls_session, session, sizeof(session_t));
         if (sock->ecdsa.ecdsa_verify(sock, &_session, other_pub_x, other_pub_y,
                                      key_size)) {
@@ -246,13 +254,16 @@ int sock_dtls_establish_session(sock_dtls_t *sock, sock_udp_ep_t *ep,
 
     // FIXME: change name of sock_dtls_session_t to not confused with session_t from tinydtls
     /* prepare a dtls session (remote party to connect to) */
-    memset(remote, 0, sizeof(sock_dtls_session_t));
+    //memset(remote, 0, sizeof(sock_dtls_session_t));
     memcpy(&remote->remote_ep, ep, sizeof(sock_udp_ep_t));
-    memcpy(&remote->dtls_session.addr, &ep->addr.ipv6, sizesof(ipv6_addr_t));
-    remote->dtls_session.ifindex = ep->netif;
-    remote->dtls_session.size = sizeof(remote->dtls_session);
+    memcpy(&remote->dtls_session.addr, &ep->addr.ipv6, sizeof(ipv6_addr_t));
+    _ep_to_session(ep, &remote->dtls_session);
+    //remote->dtls_session.port = ep.port;
+    //remote->dtls_session.ifindex = ep->netif;
+    //remote->dtls_session.size = sizeof(remote->dtls_session);
 
     /* start a handshake */
+    DEBUG("Starting handshake\n");
     if (dtls_connect(sock->dtls_ctx, &remote->dtls_session) < 0) {
         DEBUG("Error establishing a session\n");
         return -1;
@@ -272,7 +283,7 @@ int sock_dtls_establish_session(sock_dtls_t *sock, sock_udp_ep_t *ep,
                                         sizeof(rcv_buffer), SOCK_NO_TIMEOUT,
                                         &remote->remote_ep);
         if (rcv_len >= 0) {
-            dtls_handle_message(sock->dtls_ctx, &remote->session, rcv_buffer,
+            dtls_handle_message(sock->dtls_ctx, &remote->dtls_session, rcv_buffer,
                                 rcv_len);
         }
     }
@@ -289,7 +300,7 @@ int sock_dtls_establish_session(sock_dtls_t *sock, sock_udp_ep_t *ep,
 
 int sock_dtls_close_session(sock_dtls_t *sock, sock_dtls_session_t *remote)
 {
-    return dtls_close(sock->dtls_ctx, &remote->session);
+    return dtls_close(sock->dtls_ctx, &remote->dtls_session);
 }
 
 ssize_t sock_dtls_recv(sock_dtls_t *sock, sock_dtls_session_t *remote,
@@ -303,33 +314,58 @@ ssize_t sock_dtls_recv(sock_dtls_t *sock, sock_dtls_session_t *remote,
     // and dtls_handle_message() needs a filled session_t, that requires information from sock_udp_ep_t
     assert(sock && data && remote);
 
+    xtimer_t timeout_timer;
+
     if ((timeout != SOCK_NO_TIMEOUT) && (timeout != 0)) {
         timeout_timer.callback = _timeout_callback;
         timeout_timer.arg = sock;
         xtimer_set(&timeout_timer, timeout);
     }
 
-    res = sock_udp_recv(sock->udp_sock, data, max_len, timeout,
-                        &remote->remote_ep);
-    if (res < 0) {
-        DEBUG("Error receiving UDP packet: %d\n", res);
-        goto error_out;
+    while (1) {
+        //old = new;
+        //new = xtimer_now();
+        //timeout = timeout - (new - old);
+        res = sock_udp_recv(sock->udp_sock, data, max_len, timeout,
+                            &remote->remote_ep);
+        if (res < 0) {
+            DEBUG("Error receiving UDP packet: %d\n", res);
+            return res;
+        }
+        DEBUG("Got a UDP packet\n");
+
+        // TODO: add to session queue if server
+    
+        // the function uses session to find peer, if no matching found then no peer, then fail and
+        // return < 0
+        // dtls_handle_message() uses the same buffer given to put the decrypted data, just
+        // points to slightly vorne due to record header
+        _ep_to_session(&remote->remote_ep, &remote->dtls_session);
+        res = dtls_handle_message(sock->dtls_ctx, &remote->dtls_session,
+                            (uint8_t *)data, res);
+        if (res < 0) {
+            DEBUG("Error decrypting message\n");
+            return res;
+        }
+
+        if (mbox_try_get(&sock->mbox, &msg)) {
+            switch(msg.type) {
+                case DTLS_EVENT_READ:
+                    data = sock->buf;
+                    return sock->buflen;
+                case _TIMEOUT_MSG_TYPE:
+                    DEBUG("Error timed out while decrpting message\n");
+                    return -ETIMEDOUT;
+                default:
+                    break;
+            }
+        }
     }
 
-    // the function uses session to find peer, if no matching found then no peer, then fail and
-    // return < 0
-    // dtls_handle_message() uses the same buffer given to put the decrypted data, just
-    // points to slightly vorne due to record header
-    _ep_to_session(&remote->session, &remote->remote-ep);
-    res = dtls_handle_message(sock->dtls_ctx, &remote->session,
-                        (uint8_t *)data, res);
-    if (res < 0) {
-        DEBUG("Error decrypting message\n");
-        goto error_out;
-    }
-
+    /*
     // blocks until we got a decrypted message OR TODO timeout
     // race condition between this and tinydtls _read callback?
+    DEBUG("Waiting for decrypted message or timeout\n");
     while (msg.type != DTLS_EVENT_READ || msg.type != _TIMEOUT_MSG_TYPE) {
         if (timeout != 0) {
             mbox_get(&sock->mbox, &msg);
@@ -350,16 +386,16 @@ ssize_t sock_dtls_recv(sock_dtls_t *sock, sock_dtls_session_t *remote,
             DEBUG("Error timed out while decrpting message\n");
             return -ETIMEDOUT;
         default:
-            /* Falls through */
             return -EINVAL;
     }
+    */
 }
 
 ssize_t sock_dtls_send(sock_dtls_t *sock, sock_dtls_session_t *remote,
                        const void *data, size_t len)
 {
     assert(sock && remote && data);
-    return dtls_write(sock->dtls_ctx, &remote->session, (uint8_t *)data, len);
+    return dtls_write(sock->dtls_ctx, &remote->dtls_session, (uint8_t *)data, len);
 }
 
 int sock_dtls_destroy(sock_dtls_t *sock)
@@ -368,14 +404,14 @@ int sock_dtls_destroy(sock_dtls_t *sock)
     return 0;
 }
 
-static void _ep_to_session(session_t *session, sock_udp_ep_t *ep) {
+static void _ep_to_session(const sock_udp_ep_t *ep, session_t *session) {
     session->port = ep->port; // only if WITH_CONTIKI is set
     session->size = sizeof(ipv6_addr_t);
     session->ifindex = ep->netif;
     memcpy(&session->addr, &ep->addr.ipv6, sizeof(ipv6_addr_t)); // can this be casted like that?
 }
 
-static void _session_to_udp_ep(const session_t *session, sock_udp_ep_t *ep)
+static void _session_to_ep(const session_t *session, sock_udp_ep_t *ep)
 {
     ep->port = session->port; // only if WITH_CONTIKI is set
     ep->netif = session->ifindex;

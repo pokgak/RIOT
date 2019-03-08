@@ -28,11 +28,47 @@
 extern "C" {
 #endif
 
+#include "event.h"
+#include "dtls.h"
 #include "net/sock/udp.h"
 
 #ifndef SOCK_DTLS_MBOX_SIZE
 #define SOCK_DTLS_MBOX_SIZE     (8)
 #endif
+
+typedef int (*psk_hint_storage_t)(struct sock_dtls *sock,
+                                 struct sock_dtls_session *session,
+                                 unsigned char *hint, size_t hint_len);
+
+typedef int (*psk_id_storage_t)(struct sock_dtls *sock,
+                                struct sock_dtls_session *session,
+                                const unsigned char *hint, size_t hint_len,
+                                unsigned char *id, size_t id_len);
+
+typedef int (*psk_key_storage_t)(struct sock_dtls *sock,
+                                 struct sock_dtls_session *session,
+                                 const unsigned char *id, size_t id_len,
+                                 unsigned char *key, size_t key_len);
+
+typedef int (*ecdsa_storage_t)(struct sock_dtls *sock,
+                               struct sock_dtls_session *session,
+                               dtls_ecdsa_key_t **key);
+
+typedef int (*ecdsa_verify_t)(struct sock_dtls *sock,
+                              struct sock_dtls_session *session,
+                              const unsigned char *pub_x,
+                              const unsigned char *pub_y, size_t key_size);
+
+typedef struct {
+    psk_hint_storage_t psk_hint_storage;
+    psk_id_storage_t psk_id_storage;
+    psk_key_storage_t psk_key_storage;
+} psk_keys_t;
+
+typedef struct {
+    ecdsa_storage_t ecdsa_storage;
+    ecdsa_verify_t ecdsa_verify;
+} ecdsa_keys_t;
 
 struct sock_dtls {
     dtls_context_t *dtls_ctx;
@@ -42,6 +78,8 @@ struct sock_dtls {
     msg_t mbox_queue[SOCK_DTLS_MBOX_SIZE];
     uint8_t *buf;
     size_t buflen;
+    psk_keys_t psk;
+    ecdsa_keys_t ecdsa;
 };
 
 // what do i need to know about remote
