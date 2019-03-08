@@ -404,11 +404,13 @@ int sock_dtls_destroy(sock_dtls_t *sock)
     return 0;
 }
 
-static void _ep_to_session(const sock_udp_ep_t *ep, session_t *session) {
-    session->port = ep->port; // only if WITH_CONTIKI is set
-    session->size = sizeof(ipv6_addr_t);
-    session->ifindex = ep->netif;
-    memcpy(&session->addr, &ep->addr.ipv6, sizeof(ipv6_addr_t)); // can this be casted like that?
+static void _ep_to_session(const sock_udp_ep_t *ep, session_t *session)
+{
+    session->port = ep->port;
+    session->size = sizeof(ipv6_addr_t) + sizeof(unsigned short);
+    //session->ifindex = ep->netif;
+    session->ifindex = 0;
+    memcpy(&session->addr, &ep->addr.ipv6, sizeof(ipv6_addr_t));
 }
 
 static void _session_to_ep(const session_t *session, sock_udp_ep_t *ep)
