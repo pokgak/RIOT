@@ -80,6 +80,7 @@ struct sock_dtls {
     size_t buflen;
     psk_keys_t psk;
     ecdsa_keys_t ecdsa;
+    dtls_peer_type role;
 };
 
 // what do i need to know about remote
