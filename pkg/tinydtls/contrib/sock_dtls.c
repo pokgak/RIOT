@@ -5,8 +5,10 @@
 #include "debug.h"
 #include "dtls_debug.h"
 
+#define DTLS_EVENT_READ 0x01DB
+#define _TIMEOUT_MSG_TYPE   (0x8474)    // FIXME: get better value for this
+
 #define RCV_BUFFER (512)
-#define _TIMEOUT_MSG_TYPE   (0x8474)    // FIXME: get more suitable value for this
 
 static void _timeout_callback(void *arg);
 
@@ -53,8 +55,6 @@ static dtls_handler_t _dtls_handler = {
     .read = _read,
 };
 
-#define DTLS_EVENT_READ 0x01DB
-
 static int _read(struct dtls_context_t *ctx, session_t *session, uint8_t *buf,
                  size_t len)
 {
@@ -65,7 +65,7 @@ static int _read(struct dtls_context_t *ctx, session_t *session, uint8_t *buf,
 
     if (sock->buflen < len && sock->buf) {
         DEBUG("Not enough place on buffer for decrypted message\n");
-        res = -1;
+        res = -ENOBUFS;
     }
     else {
         sock->buflen = len;
@@ -216,11 +216,12 @@ int sock_dtls_init(void)
 
 int sock_dtls_create(sock_dtls_t *sock, sock_udp_t *udp_sock, unsigned method)
 {
+    // TODO: use method
     (void)method;
     assert(sock && udp_sock);
     sock->udp_sock = udp_sock;
     sock->dtls_ctx = dtls_new_context(sock);
-    sock->role = DTLS_CLIENT;
+    //sock->role = DTLS_CLIENT;
     sock->queue = NULL;
     if (!sock->dtls_ctx) {
         DEBUG("Error while getting a DTLS context\n");
@@ -251,6 +252,7 @@ int sock_dtls_establish_session(sock_dtls_t *sock, sock_udp_ep_t *ep,
     assert(sock && ep && remote);
 
     // FIXME: change name of sock_dtls_session_t to not confused with session_t from tinydtls
+
     /* prepare a dtls session (remote party to connect to) */
     memcpy(&remote->remote_ep, ep, sizeof(sock_udp_ep_t));
     memcpy(&remote->dtls_session.addr, &ep->addr.ipv6, sizeof(ipv6_addr_t));
@@ -269,8 +271,10 @@ int sock_dtls_establish_session(sock_dtls_t *sock, sock_udp_ep_t *ep,
         return -1;
     }
     DEBUG("ClientHello sent, waiting for handshake\n");
+
     // can an application data sent to ep A (this ep) from ep B interrupt ongoing handshake
     // between this ep (A) and other ep (C)?
+
     /* receive packages from sock until the session is established */
     while (!mbox_try_get(&sock->mbox, &msg)) {
         ssize_t rcv_len = sock_udp_recv(sock->udp_sock, rcv_buffer,
@@ -294,6 +298,8 @@ int sock_dtls_establish_session(sock_dtls_t *sock, sock_udp_ep_t *ep,
 
 int sock_dtls_close_session(sock_dtls_t *sock, sock_dtls_session_t *remote)
 {
+    // TODO: remove session from queue?
+    // can server close a session established by a client?
     return dtls_close(sock->dtls_ctx, &remote->dtls_session);
 }
 
@@ -349,6 +355,7 @@ ssize_t sock_dtls_recv(sock_dtls_t *sock, sock_dtls_session_t *remote,
                 case _TIMEOUT_MSG_TYPE:
                     DEBUG("Error: timed out while decrpting message\n");
                     return -ETIMEDOUT;
+                // TODO: how about renegotiate?
                 default:
                     break;
             }
