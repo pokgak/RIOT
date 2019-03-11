@@ -118,6 +118,14 @@ int sock_dtls_close_session(sock_dtls_t *sock, sock_dtls_session_t *remote);
  *
  * @return The number of bytes received on success
  * @return value < 0 on error
+ * @return  -EADDRNOTAVAIL, if local of @p sock->udp_sock is not given.
+ * @return  -EAGAIN, if @p timeout is `0` and no data is available.
+ * @return  -EINVAL, if @p remote is invalid or @p sock is not properly
+ *          initialized (or closed while sock_udp_recv() blocks).
+ * @return  -ENOBUFS, if buffer space is not large enough to store received
+ *          data.
+ * @return  -ENOMEM, if no memory was available to receive @p data.
+ * @return  -ETIMEDOUT, if @p timeout expired.
  */
 ssize_t sock_dtls_recv(sock_dtls_t *sock, sock_dtls_session_t *remote,
                        void *data, size_t max_len, uint32_t timeout);
@@ -135,6 +143,15 @@ ssize_t sock_dtls_recv(sock_dtls_t *sock, sock_dtls_session_t *remote,
  *
  * @return The number of bytes sent on success
  * @return value < 0 on error
+ * @return  -EADDRINUSE, if `sock` has no local end-point.
+ * @return  -EAFNOSUPPORT, if `remote->remote_ep != NULL` and
+ *          sock_udp_ep_t::family of @p remote->remote_ep is != AF_UNSPEC and
+ *          not supported.
+ * @return  -EHOSTUNREACH, if sock_dtls_t::sock_udp_ep_t of @p remote is not
+ *          reachable.
+ * @return  -EINVAL, if sock_udp_ep_t::addr of @p remote->remote_ep is an invalid address.
+ * @return  -EINVAL, if sock_udp_ep_t::port of @p remote is 0.
+ * @return  -ENOMEM, if no memory was available to send @p data.
  */
 ssize_t sock_dtls_send(sock_dtls_t *sock, sock_dtls_session_t *remote,
                        const void *data, size_t len);
