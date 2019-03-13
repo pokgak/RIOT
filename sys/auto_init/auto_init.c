@@ -88,6 +88,10 @@
 #include "net/asymcute.h"
 #endif
 
+#ifdef MODULE_SOCK_DTLS
+#include "net/sock/dtls.h"
+#endif
+
 #define ENABLE_DEBUG (0)
 #include "debug.h"
 
@@ -140,6 +144,10 @@ void auto_init(void)
 #ifdef MODULE_OPENTHREAD
     extern void openthread_bootstrap(void);
     openthread_bootstrap();
+#endif
+#ifdef MODULE_SOCK_DTLS
+    DEBUG("Auto init sock_dtls\n");
+    sock_dtls_init();
 #endif
 #ifdef MODULE_GCOAP
     DEBUG("Auto init gcoap module.\n");
