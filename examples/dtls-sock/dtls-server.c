@@ -28,67 +28,7 @@ static kernel_pid_t _dtls_server_pid = KERNEL_PID_UNDEF;
 
 #define READER_QUEUE_SIZE (8U)
 
-/* this credential management is too implementation specific, should be
- * should be improved later on */
-#ifdef DTLS_PSK
 static uint8_t psk_key_0[] = PSK_DEFAULT_KEY;
-static int _key_storage(sock_dtls_t *sock, sock_dtls_session_t *session,
-                        const unsigned char *id, size_t id_len,
-                        unsigned char *key, size_t key_len)
-{
-    (void)sock;
-    (void)session;
-    (void)id;
-    (void)id_len;
-    puts("Server key storage");
-    if (key_len < sizeof(psk_key_0) - 1) {
-        return 0;
-    }
-    else {
-        memcpy(key, psk_key_0, sizeof(psk_key_0) - 1);
-        return sizeof(psk_key_0) - 1;
-    }
-}
-#endif /* DTLS_PSK */
-
-#ifdef DTLS_ECC
-static dtls_ecdsa_key_t cert = {
-    .priv_key = ecdsa_priv_key,
-    .pub_key_x = ecdsa_pub_key_x,
-    .pub_key_y = ecdsa_pub_key_y,
-    .curve = DTLS_ECDH_CURVE_SECP256R1
-};
-
-static int _ecdsa_storage(sock_dtls_t *sock, sock_dtls_session_t *session,
-                          dtls_ecdsa_key_t **key)
-{
-    (void)sock;
-    (void)session;
-    *key = &cert;
-    return 0;
-}
-
-static int _ecdsa_verify(sock_dtls_t *sock, sock_dtls_session_t *session,
-                         const unsigned char *pub_x, const unsigned char *pub_y,
-                         size_t key_size)
-{
-    (void)sock;
-    (void)session;
-    if (!key_size) {
-        return -1;
-    }
-    /* just checking every byte for now */
-    for (unsigned i = 0; i < key_size; i++) {
-        if ((pub_x[i] != client_ecdsa_pub_key_x[i]) ||
-            (pub_y[i] != client_ecdsa_pub_key_y[i])) {
-            puts("Client keys do not match");
-            return -1;
-        }
-    }
-    return 0;
-}
-
-#endif /* DLTS_ECC */
 
 void *_dtls_server_wrapper(void *arg)
 {
@@ -103,30 +43,23 @@ void *_dtls_server_wrapper(void *arg)
     /* Prepare (thread) messages reception */
     msg_init_queue(_reader_queue, READER_QUEUE_SIZE);
 
-    sock_dtls_t sock = {
-#ifdef DTLS_PSK
-        .psk = {
-            .psk_key_storage = _key_storage
-        },
-#endif /* DTLS_PSK */
-#ifdef DTLS_ECC
-        .ecdsa = {
-            .ecdsa_storage = _ecdsa_storage,
-            .ecdsa_verify = _ecdsa_verify
-        }
-#endif /* DTLS_ECC */
-    };
-
+    sock_dtls_t sock;
     sock_udp_t udp_sock;
     sock_udp_ep_t local_ep = SOCK_IPV6_EP_ANY;
     local_ep.port = DTLS_SERVER_PORT;
     sock_udp_create(&udp_sock, &local_ep, NULL, 0);
 
+    tlscred_t cred;
+    cred.psk.key = (const char *)psk_key_0;
+    cred.psk.key_len = sizeof(psk_key_0) - 1;
+
+    //tlscred_add_psk_info(&cred, TLSCRED_PSK_KEY, psk_key_0, sizeof(psk_key_0) - 1);
+
     sock_dtls_queue_t queue;
     sock_dtls_session_t queue_array[MAX_SESSIONS];
     sock_dtls_session_t rcv_session;
 
-    sock_dtls_create(&sock, &udp_sock, 0);
+    sock_dtls_create(&sock, &udp_sock, &cred, 0);
     sock_dtls_init_server(&sock, &queue, queue_array, MAX_SESSIONS);
 
     while (active) {

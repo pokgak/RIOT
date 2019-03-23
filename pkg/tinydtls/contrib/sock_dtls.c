@@ -140,36 +140,57 @@ static int _event(struct dtls_context_t *ctx, session_t *session,
 #ifdef DTLS_PSK
 static int _get_psk_info(struct dtls_context_t *ctx, const session_t *session,
                          dtls_credentials_type_t type,
-                         const unsigned char *id, size_t id_len,
+                         const unsigned char *desc, size_t desc_len,
                          unsigned char *result, size_t result_length)
 {
     (void)session;
+    (void)desc;
+    (void)desc_len;
     sock_dtls_t *sock = (sock_dtls_t *)dtls_get_app_data(ctx);
     sock_dtls_session_t _session;
     sock_udp_ep_t ep;
+    psk_keys_t *psk = &sock->cred->psk;
 
     _session_to_ep(session, &ep);
     memcpy(&_session.remote_ep, &ep, sizeof(sock_udp_ep_t));
     memcpy(&_session.dtls_session, session, sizeof(session_t));
     switch(type) {
         case DTLS_PSK_HINT:
-            if (sock->psk.psk_hint_storage) {
-                return sock->psk.psk_hint_storage(sock, &_session, result,
-                                                  result_length);
+
+            DEBUG("psk hint request\n");
+            if (result_length < psk->hint_len) {
+                DEBUG("ERROR: not enough space at result buffer\n");
+                return -1;
+            }
+
+            if (psk->hint) {
+                memcpy(result, psk->hint, psk->hint_len);
+                return psk->hint_len;
             }
             return 0;
 
         case DTLS_PSK_IDENTITY:
             DEBUG("psk id request\n");
-            if (sock->psk.psk_id_storage) {
-                return sock->psk.psk_id_storage(sock, &_session, id, id_len,
-                                                result, result_length);
+            if (result_length < psk->id_len) {
+                DEBUG("ERROR: not enough space at result buffer\n");
+                return dtls_alert_fatal_create(DTLS_ALERT_INTERNAL_ERROR);
+            }
+
+            if (psk->id) {
+                memcpy(result, psk->id, psk->id_len);
+                return psk->id_len;
             }
             return 0;
         case DTLS_PSK_KEY:
-            if (sock->psk.psk_key_storage) {
-                return sock->psk.psk_key_storage(sock, &_session, id, id_len,
-                                                 result, result_length);
+            DEBUG("psk key request\n");
+            if (result_length < psk->key_len) {
+                DEBUG("ERROR: not enough space at result buffer\n");
+                return -1;
+            }
+
+            if (psk->key) {
+                memcpy(result, psk->key, psk->key_len);
+                return psk->key_len;
             }
             return 0;
         default:
@@ -231,18 +252,20 @@ void sock_dtls_init(void)
     //dtls_set_log_level(DTLS_LOG_DEBUG);
 }
 
-int sock_dtls_create(sock_dtls_t *sock, sock_udp_t *udp_sock, unsigned method)
+int sock_dtls_create(sock_dtls_t *sock, sock_udp_t *udp_sock, tlscred_t *cred,
+                     unsigned method)
 {
     (void)method;
     assert(sock && udp_sock);
     sock->udp_sock = udp_sock;
     sock->dtls_ctx = dtls_new_context(sock);
-    sock->role = DTLS_CLIENT;
-    sock->queue = NULL;
     if (!sock->dtls_ctx) {
         DEBUG("Error while getting a DTLS context\n");
         return -1;
     }
+    sock->cred = cred;
+    sock->role = DTLS_CLIENT;
+    sock->queue = NULL;
     mbox_init(&sock->mbox, sock->mbox_queue, SOCK_DTLS_MBOX_SIZE);
     dtls_set_handler(sock->dtls_ctx, &_dtls_handler);
     return 0;

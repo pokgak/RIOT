@@ -28,6 +28,7 @@
 
 #include "net/sock.h"
 #include "net/sock/udp.h"
+#include "net/tlscred.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -74,7 +75,8 @@ void sock_dtls_init(void);
  * @return  0 on success.
  * @return value < 0 on error
  */
-int sock_dtls_create(sock_dtls_t *sock, sock_udp_t *udp_sock, unsigned method);
+int sock_dtls_create(sock_dtls_t *sock, sock_udp_t *udp_sock, tlscred_t *cred,
+                     unsigned method);
 
 /**
  * @brief Initialises the server to listen for incoming connections
