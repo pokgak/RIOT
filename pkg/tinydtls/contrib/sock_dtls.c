@@ -268,10 +268,10 @@ int sock_dtls_create(sock_dtls_t *sock, sock_udp_t *udp_sock, tlscred_t *cred,
     sock->cred = cred;
     sock->role = DTLS_CLIENT;
 #ifdef DTLS_PSK
-    if (!cred->psk.id) {
+    if (cred->load_credential && !cred->psk.id) {
         cred->load_credential(TLSCRED_PSK_IDENTITY, cred->psk.id, &cred->psk.id_len);
     }
-    if (!cred->psk.key) {
+    if (cred->load_credential && !cred->psk.key) {
         cred->load_credential(TLSCRED_PSK_KEY, cred->psk.key, &cred->psk.key_len);
     }
 #endif
@@ -295,7 +295,9 @@ void sock_dtls_init_server(sock_dtls_t *sock, sock_dtls_queue_t *queue,
     sock->role = DTLS_SERVER;
     tlscred_t *cred = sock->cred;
 #ifdef DTLS_PSK
-    cred->load_credential(TLSCRED_PSK_HINT, cred->psk.hint, &cred->psk.hint_len);
+    if (cred->load_credential != NULL) {
+        cred->load_credential(TLSCRED_PSK_HINT, cred->psk.hint, &cred->psk.hint_len);
+    }
 #endif
 #ifdef DTLS_ECC
 #endif

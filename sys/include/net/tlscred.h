@@ -1,6 +1,12 @@
 #ifndef NET_TLSCRED_H
 #define NET_TLSCRED_H
 
+/**
+ * @brief Credential management API for (D)TLS
+ *
+ * Provides loading/management of keys/certificate for (D)TLS encryption.
+ */
+
 #include <sys/types.h>
 
 typedef enum {

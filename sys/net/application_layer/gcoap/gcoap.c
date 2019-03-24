@@ -42,7 +42,7 @@
 #define GCOAP_RESOURCE_NO_PATH -2
 
 /* Internal functions */
-#ifdef MODULE_SOCK_DTLS
+#ifdef MODULE_TINYDTLS_SOCK
 static void _listen(sock_dtls_t *sock);
 #else
 static void _listen(sock_udp_t *sock);
@@ -61,6 +61,7 @@ static int _find_obs_memo(gcoap_observe_memo_t **memo, sock_udp_ep_t *remote,
                                                        coap_pkt_t *pdu);
 static void _find_obs_memo_resource(gcoap_observe_memo_t **memo,
                                    const coap_resource_t *resource);
+
 
 /* Internal variables */
 const coap_resource_t _default_resources[] = {
@@ -106,19 +107,24 @@ static msg_t _msg_queue[GCOAP_MSG_QUEUE_SIZE];
 static sock_udp_t _sock;
 static sock_dtls_t _dtls_sock;
 
-static ssize_t _send_pdu(const char *buf, size_t len, sock_udp_ep_t * remote)
+static ssize_t _send_pdu(const uint8_t *buf, size_t len, sock_udp_ep_t * remote)
 {
-#ifdef MODULE_SOCK_DTLS
-    // TODO: get rcv_session info from msg
+    ssize_t res = -1;
+#ifdef MODULE_TINYDTLS_SOCK
     sock_dtls_session_t rcvd_session;
-    return sock_dtls_send(&_dtls_sock, &rcvd_session,
-                                    memo->msg.data.pdu_buf,
-                                    memo->msg.data.pdu_len);
+    session_t *s = &rcvd_session.dtls_session;
+    /* fill in rcvd_session with infos from remote */
+    s->port = remote->port;
+    s->size = sizeof(ipv6_addr_t) + sizeof(s->port);
+    s->ifindex = SOCK_ADDR_ANY_NETIF;
+    memcpy(&s->addr, remote->addr.ipv6, sizeof(ipv6_addr_t));
+    memcpy(&rcvd_session.remote_ep, remote, sizeof(sock_udp_ep_t));
+
+    res = sock_dtls_send(&_dtls_sock, &rcvd_session, buf, len);
 #else
-    return sock_udp_send(&_sock, memo->msg.data.pdu_buf,
-                                  memo->msg.data.pdu_len,
-                                  &memo->remote_ep);
+    res = sock_udp_send(&_sock, buf, len, remote);
 #endif
+    return res;
 }
 
 /* Event/Message loop for gcoap _pid thread. */
@@ -141,8 +147,9 @@ static void *_event_loop(void *arg)
         return 0;
     }
 
-#ifdef MODULE_SOCK_DTLS
+#ifdef MODULE_TINYDTLS_SOCK
     tlscred_t cred;
+    cred.load_credential = NULL;
     cred.psk.id = _psk_id;
     cred.psk.id_len = sizeof(_psk_id) - 1;
     cred.psk.key = _psk_key;
@@ -200,7 +207,7 @@ static void *_event_loop(void *arg)
             }
         }
 
-#ifdef MODULE_SOCK_DTLS
+#ifdef MODULE_TINYDTLS_SOCK
         _listen(&_dtls_sock);
 #else
         _listen(&_sock);
@@ -211,7 +218,7 @@ static void *_event_loop(void *arg)
 }
 
 /* Listen for an incoming CoAP message. */
-#ifdef MODULE_SOCK_DTLS
+#ifdef MODULE_TINYDTLS_SOCK
 static void _listen(sock_dtls_t *sock)
 #else
 static void _listen(sock_udp_t *sock)
@@ -228,7 +235,7 @@ static void _listen(sock_udp_t *sock)
      * request is outstanding, sock_udp_recv() is called here with limited
      * waiting so the request's timeout can be handled in a timely manner in
      * _event_loop(). */
-#ifdef MODULE_SOCK_DTLS
+#ifdef MODULE_TINYDTLS_SOCK
     // TODO: fill in with destination
     sock_dtls_session_t rcvd_session;
     ssize_t res = sock_dtls_recv(sock, &rcvd_session, buf, sizeof(buf),
@@ -268,7 +275,7 @@ static void _listen(sock_udp_t *sock)
                 || coap_get_type(&pdu) == COAP_TYPE_CON) {
             size_t pdu_len = _handle_req(&pdu, buf, sizeof(buf), &remote);
             if (pdu_len > 0) {
-#ifdef MODULE_SOCK_DTLS
+#ifdef MODULE_TINYDTLS_SOCK
                 ssize_t bytes = sock_dtls_send(sock, &rcvd_session, buf,
                                                pdu_len);
 #else
