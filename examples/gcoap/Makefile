@@ -34,6 +34,27 @@ USEMODULE += gcoap
 # Additional networking modules that can be dropped if not needed
 USEMODULE += gnrc_icmpv6_echo
 
+# Use tinydtls for encryption
+USEMODULE += tinydtls_sock
+USEPKG += tinydtls
+ifneq (,$(filter tinydtls_sock,$(USEMODULE)))
+  GCOAP_PORT = 5684
+  CFLAGS += -DGCOAP_PORT=$(GCOAP_PORT)
+  GCOAP_PSK_ID = "RIOTer"
+  CFLAGS += -DGCOAP_PSK_ID=\"$(GCOAP_PSK_ID)\"
+  GCOAP_PSK_KEY = "YourfriendlyOSforIoT"
+  CFLAGS += -DGCOAP_PSK_KEY=\"$(GCOAP_PSK_KEY)\"
+  INCLUDES += -I$(CURDIR)
+  # Log level for the tinydtls package
+  # Values: 0:EMERG (Default), 1:ALERT 2:CRIT 3:WARN 4:NOTICE 5:INFO 6:DEBUG
+  TINYDTLS_LOG ?= 6
+
+  # temp workaround
+  USEMODULE += core_thread_flags
+endif
+
+
+
 # Required by gcoap example
 USEMODULE += od
 USEMODULE += fmt

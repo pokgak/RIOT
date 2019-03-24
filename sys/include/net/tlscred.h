@@ -18,10 +18,10 @@ typedef struct psk_keys {
     size_t id_len;
     const char *key;
     size_t key_len;
-} psk_keys_t;
+} psk_params_t;
 
 typedef struct {
-    psk_keys_t psk;
+    psk_params_t psk;
     tlscred_load_credential_t load_credential;
 } tlscred_t;
 

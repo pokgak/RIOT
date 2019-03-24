@@ -149,7 +149,7 @@ static int _get_psk_info(struct dtls_context_t *ctx, const session_t *session,
     sock_dtls_t *sock = (sock_dtls_t *)dtls_get_app_data(ctx);
     sock_dtls_session_t _session;
     sock_udp_ep_t ep;
-    psk_keys_t *psk = &sock->cred->psk;
+    psk_params_t *psk = &sock->cred->psk;
 
     _session_to_ep(session, &ep);
     memcpy(&_session.remote_ep, &ep, sizeof(sock_udp_ep_t));

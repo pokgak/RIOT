@@ -26,6 +26,9 @@
 #include "assert.h"
 #include "net/gcoap.h"
 #include "net/sock/util.h"
+#include "net/sock/dtls.h"
+#include "net/tlscred.h"
+#include "dtls_credentials.h"
 #include "mutex.h"
 #include "random.h"
 #include "thread.h"
@@ -39,8 +42,12 @@
 #define GCOAP_RESOURCE_NO_PATH -2
 
 /* Internal functions */
-static void *_event_loop(void *arg);
+#ifdef MODULE_SOCK_DTLS
+static void _listen(sock_dtls_t *sock);
+#else
 static void _listen(sock_udp_t *sock);
+#endif
+static void *_event_loop(void *arg);
 static ssize_t _well_known_core_handler(coap_pkt_t* pdu, uint8_t *buf, size_t len, void *ctx);
 static size_t _handle_req(coap_pkt_t *pdu, uint8_t *buf, size_t len,
                                                          sock_udp_ep_t *remote);
@@ -65,6 +72,9 @@ static gcoap_listener_t _default_listener = {
     sizeof(_default_resources) / sizeof(_default_resources[0]),
     NULL
 };
+
+static const char _psk_id[] = GCOAP_PSK_ID;
+static const char _psk_key[] = GCOAP_PSK_KEY;
 
 /* Container for the state of gcoap itself */
 typedef struct {
@@ -94,6 +104,7 @@ static kernel_pid_t _pid = KERNEL_PID_UNDEF;
 static char _msg_stack[GCOAP_STACK_SIZE];
 static msg_t _msg_queue[GCOAP_MSG_QUEUE_SIZE];
 static sock_udp_t _sock;
+static sock_dtls_t _dtls_sock;
 
 
 /* Event/Message loop for gcoap _pid thread. */
@@ -116,6 +127,22 @@ static void *_event_loop(void *arg)
         return 0;
     }
 
+    tlscred_t cred;
+    cred.psk.id = _psk_id;
+    cred.psk.id_len = sizeof(_psk_id) - 1;
+    cred.psk.key = _psk_key;
+    cred.psk.key_len = sizeof(_psk_key) - 1;
+    _dtls_sock.cred = &cred;
+
+    sock_dtls_queue_t queue;
+    sock_dtls_session_t queue_array[5];
+    res = sock_dtls_create(&_dtls_sock, &_sock, &cred, 0);
+    if (res < 0) {
+        DEBUG("gcoap cannot create DTLS sock %d\n", res);
+        return 0;
+    }
+    sock_dtls_init_server(&_dtls_sock, &queue, queue_array, 5);
+
     while(1) {
         res = msg_try_receive(&msg_rcvd);
 
@@ -136,10 +163,17 @@ static void *_event_loop(void *arg)
                     uint32_t timeout  = ((uint32_t)COAP_ACK_TIMEOUT << i) * US_PER_SEC;
                     uint32_t variance = ((uint32_t)COAP_ACK_VARIANCE << i) * US_PER_SEC;
                     timeout = random_uint32_range(timeout, timeout + variance);
-
+#ifdef MODULE_SOCK_DTLS
+                    // TODO: get rcv_session info from msg
+                    sock_dtls_session_t rcv_session;
+                    ssize_t bytes = sock_dtls_send(&_dtls_sock, &rcv_session,
+                                                   memo->msg.data.pdu_buf,
+                                                   memo->msg.data.pdu_len);
+#else
                     ssize_t bytes = sock_udp_send(&_sock, memo->msg.data.pdu_buf,
                                                   memo->msg.data.pdu_len,
                                                   &memo->remote_ep);
+#endif
                     if (bytes > 0) {
                         xtimer_set_msg(&memo->response_timer, timeout,
                                        &memo->timeout_msg, _pid);
@@ -156,14 +190,22 @@ static void *_event_loop(void *arg)
             }
         }
 
+#ifdef MODULE_SOCK_DTLS
+        _listen(&_dtls_sock);
+#else
         _listen(&_sock);
+#endif
     }
 
     return 0;
 }
 
 /* Listen for an incoming CoAP message. */
+#ifdef MODULE_SOCK_DTLS
+static void _listen(sock_dtls_t *sock)
+#else
 static void _listen(sock_udp_t *sock)
+#endif
 {
     coap_pkt_t pdu;
     uint8_t buf[GCOAP_PDU_BUF_SIZE];
@@ -176,9 +218,17 @@ static void _listen(sock_udp_t *sock)
      * request is outstanding, sock_udp_recv() is called here with limited
      * waiting so the request's timeout can be handled in a timely manner in
      * _event_loop(). */
+#ifdef MODULE_SOCK_DTLS
+    // TODO: fill in with destination
+    sock_dtls_session_t rcv_session;
+    ssize_t res = sock_dtls_recv(sock, &rcv_session, buf, sizeof(buf),
+                                 open_reqs > 0 ? GCOAP_RECV_TIMEOUT
+                                               : SOCK_NO_TIMEOUT);
+#else
     ssize_t res = sock_udp_recv(sock, buf, sizeof(buf),
                                 open_reqs > 0 ? GCOAP_RECV_TIMEOUT : SOCK_NO_TIMEOUT,
                                 &remote);
+#endif
     if (res <= 0) {
 #if ENABLE_DEBUG
         if (res < 0 && res != -ETIMEDOUT) {
