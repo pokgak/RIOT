@@ -49,6 +49,14 @@ ifneq (,$(filter tinydtls_sock,$(USEMODULE)))
   # Values: 0:EMERG (Default), 1:ALERT 2:CRIT 3:WARN 4:NOTICE 5:INFO 6:DEBUG
   TINYDTLS_LOG ?= 6
 
+  # FIXME: This is a temporary patch
+  # TinyDTLS <= 0.8.6 requires around 426 bytes in RAM.
+  CFLAGS += -DTHREAD_STACKSIZE_MAIN=\(4*THREAD_STACKSIZE_DEFAULT\)
+  # TINYDTLS_EXTRA_BUFF can be used for increasing the server stack memory.
+  CFLAGS += -DTINYDTLS_EXTRA_BUFF=\(4096\)
+  # inrease GCOAP_PDU_BUF_SIZE too
+  CFLAGS += -DGCOAP_PDU_BUF_SIZE=\(1024\)	# fix trap error
+
   # temp workaround
   USEMODULE += core_thread_flags
 endif
