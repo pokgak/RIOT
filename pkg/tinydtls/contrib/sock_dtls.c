@@ -156,7 +156,7 @@ static int _get_psk_info(struct dtls_context_t *ctx, const session_t *session,
     memcpy(&_session.dtls_session, session, sizeof(session_t));
     switch(type) {
         case DTLS_PSK_HINT:
-
+            /*
             DEBUG("psk hint request\n");
             if (result_length < psk->hint_len) {
                 DEBUG("ERROR: not enough space at result buffer\n");
@@ -168,7 +168,8 @@ static int _get_psk_info(struct dtls_context_t *ctx, const session_t *session,
                 return psk->hint_len;
             }
             return 0;
-
+            */
+            return 0;
         case DTLS_PSK_IDENTITY:
             DEBUG("psk id request\n");
             if (result_length < psk->id_len) {
@@ -183,6 +184,7 @@ static int _get_psk_info(struct dtls_context_t *ctx, const session_t *session,
             return 0;
         case DTLS_PSK_KEY:
             DEBUG("psk key request\n");
+            DEBUG("key_len %u\n", psk->key_len);
             if (result_length < psk->key_len) {
                 DEBUG("ERROR: not enough space at result buffer\n");
                 return -1;
@@ -265,6 +267,16 @@ int sock_dtls_create(sock_dtls_t *sock, sock_udp_t *udp_sock, tlscred_t *cred,
     }
     sock->cred = cred;
     sock->role = DTLS_CLIENT;
+#ifdef DTLS_PSK
+    if (!cred->psk.id) {
+        cred->load_credential(TLSCRED_PSK_IDENTITY, cred->psk.id, &cred->psk.id_len);
+    }
+    if (!cred->psk.key) {
+        cred->load_credential(TLSCRED_PSK_KEY, cred->psk.key, &cred->psk.key_len);
+    }
+#endif
+#ifdef DTLS_ECC
+#endif
     sock->queue = NULL;
     mbox_init(&sock->mbox, sock->mbox_queue, SOCK_DTLS_MBOX_SIZE);
     dtls_set_handler(sock->dtls_ctx, &_dtls_handler);
@@ -281,6 +293,12 @@ void sock_dtls_init_server(sock_dtls_t *sock, sock_dtls_queue_t *queue,
     queue->used = 0;
     sock->queue = queue;
     sock->role = DTLS_SERVER;
+    tlscred_t *cred = sock->cred;
+#ifdef DTLS_PSK
+    cred->load_credential(TLSCRED_PSK_HINT, cred->psk.hint, &cred->psk.hint_len);
+#endif
+#ifdef DTLS_ECC
+#endif
 }
 
 int sock_dtls_establish_session(sock_dtls_t *sock, sock_udp_ep_t *ep,

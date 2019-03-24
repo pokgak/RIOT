@@ -30,6 +30,30 @@ static kernel_pid_t _dtls_server_pid = KERNEL_PID_UNDEF;
 
 static uint8_t psk_key_0[] = PSK_DEFAULT_KEY;
 
+int _load_server_credential(tlscred_type type, const char *cred, size_t *credlen)
+{
+    (void)cred;
+    switch (type) {
+        case TLSCRED_PSK_HINT:
+        case TLSCRED_PSK_IDENTITY:
+            /* unused */
+            break;
+        case TLSCRED_PSK_KEY:
+            if (*credlen < sizeof(psk_key_0) - 1) {
+                return -1;
+            }
+
+            cred = (const char *)psk_key_0;
+            *credlen = sizeof(psk_key_0) - 1;
+            break;
+        default:
+            printf("Error: unsupported credential type %u\n", type);
+            return -1;
+    }
+
+    return 0;
+}
+
 void *_dtls_server_wrapper(void *arg)
 {
     (void) arg;
@@ -52,8 +76,7 @@ void *_dtls_server_wrapper(void *arg)
     tlscred_t cred;
     cred.psk.key = (const char *)psk_key_0;
     cred.psk.key_len = sizeof(psk_key_0) - 1;
-
-    //tlscred_add_psk_info(&cred, TLSCRED_PSK_KEY, psk_key_0, sizeof(psk_key_0) - 1);
+    cred.load_credential = _load_server_credential;
 
     sock_dtls_queue_t queue;
     sock_dtls_session_t queue_array[MAX_SESSIONS];
