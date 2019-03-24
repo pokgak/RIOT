@@ -106,6 +106,20 @@ static msg_t _msg_queue[GCOAP_MSG_QUEUE_SIZE];
 static sock_udp_t _sock;
 static sock_dtls_t _dtls_sock;
 
+static ssize_t _send_pdu(const char *buf, size_t len, sock_udp_ep_t * remote)
+{
+#ifdef MODULE_SOCK_DTLS
+    // TODO: get rcv_session info from msg
+    sock_dtls_session_t rcvd_session;
+    return sock_dtls_send(&_dtls_sock, &rcvd_session,
+                                    memo->msg.data.pdu_buf,
+                                    memo->msg.data.pdu_len);
+#else
+    return sock_udp_send(&_sock, memo->msg.data.pdu_buf,
+                                  memo->msg.data.pdu_len,
+                                  &memo->remote_ep);
+#endif
+}
 
 /* Event/Message loop for gcoap _pid thread. */
 static void *_event_loop(void *arg)
@@ -127,12 +141,15 @@ static void *_event_loop(void *arg)
         return 0;
     }
 
+#ifdef MODULE_SOCK_DTLS
     tlscred_t cred;
     cred.psk.id = _psk_id;
     cred.psk.id_len = sizeof(_psk_id) - 1;
     cred.psk.key = _psk_key;
     cred.psk.key_len = sizeof(_psk_key) - 1;
     _dtls_sock.cred = &cred;
+
+    sock_dtls_init();
 
     sock_dtls_queue_t queue;
     sock_dtls_session_t queue_array[5];
@@ -142,6 +159,7 @@ static void *_event_loop(void *arg)
         return 0;
     }
     sock_dtls_init_server(&_dtls_sock, &queue, queue_array, 5);
+#endif
 
     while(1) {
         res = msg_try_receive(&msg_rcvd);
@@ -163,17 +181,9 @@ static void *_event_loop(void *arg)
                     uint32_t timeout  = ((uint32_t)COAP_ACK_TIMEOUT << i) * US_PER_SEC;
                     uint32_t variance = ((uint32_t)COAP_ACK_VARIANCE << i) * US_PER_SEC;
                     timeout = random_uint32_range(timeout, timeout + variance);
-#ifdef MODULE_SOCK_DTLS
-                    // TODO: get rcv_session info from msg
-                    sock_dtls_session_t rcv_session;
-                    ssize_t bytes = sock_dtls_send(&_dtls_sock, &rcv_session,
-                                                   memo->msg.data.pdu_buf,
-                                                   memo->msg.data.pdu_len);
-#else
-                    ssize_t bytes = sock_udp_send(&_sock, memo->msg.data.pdu_buf,
-                                                  memo->msg.data.pdu_len,
-                                                  &memo->remote_ep);
-#endif
+                    ssize_t bytes = _send_pdu(memo->msg.data.pdu_buf,
+                                              memo->msg.data.pdu_len,
+                                              &memo->remote_ep);
                     if (bytes > 0) {
                         xtimer_set_msg(&memo->response_timer, timeout,
                                        &memo->timeout_msg, _pid);
@@ -220,8 +230,8 @@ static void _listen(sock_udp_t *sock)
      * _event_loop(). */
 #ifdef MODULE_SOCK_DTLS
     // TODO: fill in with destination
-    sock_dtls_session_t rcv_session;
-    ssize_t res = sock_dtls_recv(sock, &rcv_session, buf, sizeof(buf),
+    sock_dtls_session_t rcvd_session;
+    ssize_t res = sock_dtls_recv(sock, &rcvd_session, buf, sizeof(buf),
                                  open_reqs > 0 ? GCOAP_RECV_TIMEOUT
                                                : SOCK_NO_TIMEOUT);
 #else
@@ -258,7 +268,12 @@ static void _listen(sock_udp_t *sock)
                 || coap_get_type(&pdu) == COAP_TYPE_CON) {
             size_t pdu_len = _handle_req(&pdu, buf, sizeof(buf), &remote);
             if (pdu_len > 0) {
+#ifdef MODULE_SOCK_DTLS
+                ssize_t bytes = sock_dtls_send(sock, &rcvd_session, buf,
+                                               pdu_len);
+#else
                 ssize_t bytes = sock_udp_send(sock, buf, pdu_len, &remote);
+#endif
                 if (bytes <= 0) {
                     DEBUG("gcoap: send response failed: %d\n", (int)bytes);
                 }
