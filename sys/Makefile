@@ -136,6 +136,9 @@ endif
 ifneq (,$(filter bluetil_%,$(USEMODULE)))
   DIRS += net/ble/bluetil
 endif
+ifneq (,$(filter tlsman,$(USEMODULE)))
+  DIRS += net/tlsman
+endif
 
 DIRS += $(dir $(wildcard $(addsuffix /Makefile, $(USEMODULE))))
 
