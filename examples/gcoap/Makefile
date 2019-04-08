@@ -34,6 +34,20 @@ USEMODULE += gcoap
 # Additional networking modules that can be dropped if not needed
 USEMODULE += gnrc_icmpv6_echo
 
+# Use tinydtls's sock_dtls
+USEMODULE += tinydtls_sock_dtls
+USEMODULE += sock_dtls 	# FIXME: why it doesnt see this?
+ifneq (,$(filter sock_dtls,$(USEMODULE)))
+  GCOAP_PORT = 5684
+  CFLAGS += -DGCOAP_PORT=$(GCOAP_PORT)
+  INCLUDES += -I$(CURDIR)
+  ifneq (,$(filter tinydtls,$(USEMODULE)))
+    # Log level for the tinydtls package
+    # Values: 0:EMERG (Default), 1:ALERT 2:CRIT 3:WARN 4:NOTICE 5:INFO 6:DEBUG
+    TINYDTLS_LOG ?= 6
+  endif
+endif
+
 # Required by gcoap example
 USEMODULE += od
 USEMODULE += fmt

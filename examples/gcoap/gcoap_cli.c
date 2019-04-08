@@ -25,6 +25,11 @@
 #include "net/gcoap.h"
 #include "od.h"
 #include "fmt.h"
+#ifdef MODULE_SOCK_DTLS
+#include "net/tlsman.h"
+#include "credentials.h"
+#include "net/sock/dtls.h"
+#endif
 
 #define ENABLE_DEBUG (0)
 #include "debug.h"
@@ -33,6 +38,7 @@ static void _resp_handler(unsigned req_state, coap_pkt_t* pdu,
                           sock_udp_ep_t *remote);
 static ssize_t _stats_handler(coap_pkt_t* pdu, uint8_t *buf, size_t len, void *ctx);
 static ssize_t _riot_board_handler(coap_pkt_t* pdu, uint8_t *buf, size_t len, void *ctx);
+static int _get_psk_params(psk_params_t *psk);
 
 /* CoAP resources. Must be sorted by path (ASCII order). */
 static const coap_resource_t _resources[] = {
@@ -48,6 +54,23 @@ static gcoap_listener_t _listener = {
 
 /* Counts requests sent by CLI. */
 static uint16_t req_count = 0;
+
+static tlsman_handler_t credentials_handler = {
+    .get_psk_params = _get_psk_params,
+    .get_ecdsa_params = NULL,
+};
+
+static int _get_psk_params(psk_params_t *psk)
+{
+    psk->key = tdsec_psk_params[0].key;
+    psk->key_len = strlen(tdsec_psk_params[0].key);
+
+    psk->id = tdsec_psk_params[0].id;
+    psk->hint = NULL;
+    psk->id_len = strlen(tdsec_psk_params[0].id);
+    psk->hint_len = 0;
+    return 0;
+}
 
 /*
  * Response callback.
@@ -312,5 +335,6 @@ int gcoap_cli_cmd(int argc, char **argv)
 
 void gcoap_cli_init(void)
 {
+    tlsman_set_credentials_handler(&credentials_handler);
     gcoap_register_listener(&_listener);
 }
