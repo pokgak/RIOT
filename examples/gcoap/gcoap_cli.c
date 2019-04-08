@@ -25,6 +25,20 @@
 #include "net/gcoap.h"
 #include "od.h"
 #include "fmt.h"
+#ifdef MODULE_SOCK_DTLS
+#include "net/credman.h"
+
+#define SOCK_DTLS_GCOAP_TAG (10)
+
+extern const char psk_key[];
+extern const char psk_id[];
+extern const unsigned psk_key_len;
+extern const unsigned psk_id_len;
+
+extern const unsigned char ecdsa_priv_key[];
+extern const unsigned char ecdsa_pub_key_x[];
+extern const unsigned char ecdsa_pub_key_y[];
+#endif
 
 #define ENABLE_DEBUG (0)
 #include "debug.h"
@@ -246,6 +260,12 @@ int gcoap_cli_cmd(int argc, char **argv)
         uint8_t open_reqs = gcoap_op_state();
 
         printf("CoAP server is listening on port %u\n", GCOAP_PORT);
+    #ifdef MODULE_SOCK_DTLS
+        printf("CoAP secured with DTLS");
+        // TODO
+        // printf("Number of connected sessions: %d / %d\n", session_count,
+        //        SOCK_DTLS_MAX_SESSION);
+    #endif
         printf(" CLI requests sent: %u\n", req_count);
         printf("CoAP open requests: %u\n", open_reqs);
         return 0;
@@ -338,5 +358,27 @@ int gcoap_cli_cmd(int argc, char **argv)
 
 void gcoap_cli_init(void)
 {
+#ifdef MODULE_SOCK_DTLS
+    /* load credentials into pool with credman */
+    credman_credential_t credential = {
+        .type = CREDMAN_TYPE_PSK,
+        .tag = SOCK_DTLS_GCOAP_TAG,
+        .params = {
+            .psk = {
+                .key = { .s = (char *)psk_key, .len = psk_key_len },
+                .id = { .s = (char *)psk_id, .len = psk_id_len },
+            },
+        },
+    };
+    if (credman_add(&credential) < 0) {
+        puts("gcoap_cli: unable to add credential");
+        return;
+    }
+
+    /* tell gcoap with tag to use */
+    gcoap_set_credential_tag(SOCK_DTLS_GCOAP_TAG);
+#endif
+    /* starts the gcoap server */
+    gcoap_init();
     gcoap_register_listener(&_listener);
 }
