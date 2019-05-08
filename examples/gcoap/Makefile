@@ -41,6 +41,10 @@ ifneq (,$(filter sock_dtls,$(USEMODULE)))
   GCOAP_PORT = 5684
   CFLAGS += -DGCOAP_PORT=$(GCOAP_PORT)
   INCLUDES += -I$(CURDIR)
+  # This adds support for TLS_PSK_WITH_AES_128_CCM_8
+  CFLAGS += -DDTLS_PSK
+  # This adds support for TLS_ECDHE_ECDSA_WITH_AES_128_CCM_8
+  #CFLAGS += -DDTLS_ECC
   ifneq (,$(filter tinydtls,$(USEMODULE)))
     # Log level for the tinydtls package
     # Values: 0:EMERG (Default), 1:ALERT 2:CRIT 3:WARN 4:NOTICE 5:INFO 6:DEBUG
