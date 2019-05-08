@@ -396,7 +396,7 @@ ssize_t sock_dtls_recv(sock_dtls_t *sock, sock_dtls_session_t *remote,
 
         if (_is_timed_out(timeout)) {
             timeout = timeout - (xtimer_now_usec() - start_recv);
-            DEBUG("timeout left: %u\n", timeout);
+            DEBUG("timeout left: %lu\n", (long unsigned)timeout);
         }
 
         _ep_to_session(&remote->remote_ep, &remote->dtls_session);
