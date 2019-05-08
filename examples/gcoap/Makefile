@@ -60,6 +60,22 @@ USEMODULE += shell
 USEMODULE += shell_commands
 USEMODULE += ps
 
+# FIXME: This is a temporary patch
+# TinyDTLS <= 0.8.6 requires around 426 bytes in RAM.
+CFLAGS += -DTHREAD_STACKSIZE_MAIN=\(2*THREAD_STACKSIZE_DEFAULT\)
+
+# add support for using mrf24j40 with nucleo boards
+ifeq (nucleo-f411re, $(BOARD))
+    USEMODULE += mrf24j40
+    CFLAGS += -DMRF24J40_PARAM_SPI=SPI_DEV\(0\)
+    CFLAGS += -DMRF24J40_PARAM_SPI_CLK=SPI_CLK_5MHZ
+    CFLAGS += -DMRF24J40_PARAM_CS=ARDUINO_PIN_10
+    CFLAGS += -DMRF24J40_PARAM_INT=ARDUINO_PIN_7
+    CFLAGS += -DMRF24J40_PARAM_RESET=ARDUINO_PIN_5
+
+    #CFLAGS += -DRADIO_SUPPLY_SWITCH_PINT=ARDUINO_PIN_A2
+endif
+
 # Comment this out to disable code in RIOT that does safety checking
 # which is not needed in a production environment but helps in the
 # development process:
