@@ -60,9 +60,10 @@ USEMODULE += shell
 USEMODULE += shell_commands
 USEMODULE += ps
 
-# FIXME: This is a temporary patch
-# TinyDTLS <= 0.8.6 requires around 426 bytes in RAM.
-CFLAGS += -DTHREAD_STACKSIZE_MAIN=\(2*THREAD_STACKSIZE_DEFAULT\)
+# FIXME: extra stack size for tinydtls
+GCOAPS_EXTRA_STACK_SIZE=1024
+GCOAP_STACK_SIZE=\(THREAD_STACKSIZE_DEFAULT\+DEBUG_EXTRA_STACKSIZE\+sizeof\(coap_pkt_t\)\+$(GCOAPS_EXTRA_STACK_SIZE)\)
+CFLAGS += -DGCOAP_STACK_SIZE=$(GCOAP_STACK_SIZE)
 
 # add support for using mrf24j40 with nucleo boards
 ifeq (nucleo-f411re, $(BOARD))
