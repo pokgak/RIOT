@@ -199,7 +199,6 @@ static int _get_psk_info(struct dtls_context_t *ctx, const session_t *session,
         DEBUG("sock_dtls: invalid credential params for type %d\n", type);
         return dtls_alert_fatal_create(DTLS_ALERT_INTERNAL_ERROR);
     }
-    puts("copyging credential result");
     memcpy(result, c, c_len);
     return c_len;
 }
