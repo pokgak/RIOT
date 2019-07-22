@@ -39,6 +39,7 @@ USEMODULE += netdev_eth
 USEMODULE += netdev_test
 USEMODULE += ps
 
+CFLAGS+=-Wno-unused-parameter
 #CFLAGS += ??
 
 # Change this to 0 show compiler invocation lines by default:

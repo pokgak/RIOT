@@ -32,6 +32,8 @@ extern "C" {
 #ifndef MODULE_WOLFSSL_SOCKET
 #   define WOLFSSL_GNRC
 #   define WOLFSSL_USER_IO
+#else
+#   include <sys/socket.h>
 #endif
 
 #ifndef MODULE_WOLFSSL_TLS

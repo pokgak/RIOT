@@ -41,6 +41,8 @@ USEMODULE += ps
 
 #DISABLE_MODULE += auto_init
 
+CFLAGS+=-Wno-unused-parameter
+
 #CFLAGS += ??
 
 # Change this to 0 show compiler invocation lines by default:
