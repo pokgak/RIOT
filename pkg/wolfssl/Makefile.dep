@@ -70,6 +70,7 @@ ifneq (,$(filter wolfssl_socket,$(USEMODULE)))
   USEMODULE += wolfssl_ssl
   USEMODULE += wolfssl_tls
   USEMODULE += posix_sockets
+  USEMODULE += posix_inet
 endif
 
 ifneq (,$(filter wolfcrypt_random,$(USEMODULE)))

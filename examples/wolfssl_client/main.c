@@ -129,7 +129,7 @@ int main(void)
 
     /* Get a message for the server from stdin */
     printf("Message for server: %s\n", buff);
-    len = strnlen(buff, sizeof(buff));
+    len = strlen(buff);
 
     /* Send the message to the server */
     if (wolfSSL_write(ssl, buff, len) != (int) len) {
