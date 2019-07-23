@@ -33,6 +33,7 @@
 
 #include <net/sock.h>
 #include <wolfssl/ssl.h>
+#include <wolfssl/internal.h>
 
 #define MODE_TLS 0
 #define MODE_DTLS 1
@@ -66,8 +67,6 @@ int sock_dtls_create(sock_tls_t *sock, const sock_udp_ep_t *local, const sock_ud
     if (remote) {
         XMEMCPY(&sock->peer_addr, remote, sizeof(sock_udp_ep_t));
     }
-    wolfSSL_SetIORecv(sock->ctx, GNRC_Receive);
-    wolfSSL_SetIOSend(sock->ctx, GNRC_SendTo);
     return 0;
 }
 
@@ -82,6 +81,7 @@ static int tls_session_create(sock_tls_t *sk)
     }
     wolfSSL_SetIOReadCtx(sk->ssl, sk);
     wolfSSL_SetIOWriteCtx(sk->ssl, sk);
+    sk->ssl->gnrcCtx = sk;
     return 0;
 }
 
