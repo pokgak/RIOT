@@ -22,6 +22,9 @@ extern "C" {
 #define NO_SIG_WRAPPER
 #define NO_OLD_RNGNAME
 #define WOLFSSL_SMALL_STACK
+//#define WOLFSSL_STATIC_MEMORY
+//#define USE_FAST_MATH
+
 
 /* Single precision math */
 #define WOLFSSL_SP_MATH
