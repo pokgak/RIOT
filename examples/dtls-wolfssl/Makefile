@@ -39,6 +39,7 @@ USEMODULE += wolfcrypt-test
 USEMODULE += wolfcrypt_ecc
 USEMODULE += wolfssl_dtls
 
+# Uncomment the following line to add debug symbols
 #CFLAGS+=-g -ggdb3
 
 CFLAGS += -DDTLS_DEFAULT_PORT=$(DTLS_PORT) -DDTLS_WOLFSSL
@@ -52,6 +53,6 @@ CFLAGS += -DTHREAD_STACKSIZE_MAIN=\(3*THREAD_STACKSIZE_DEFAULT\)
 CFLAGS += -DDEVELHELP
 
 # Change this to 0 show compiler invocation lines by default:
-QUIET ?= 0
+QUIET ?= 1
 
 include $(RIOTBASE)/Makefile.include

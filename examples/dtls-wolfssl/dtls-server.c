@@ -55,8 +55,8 @@
 
 #define SERVER_PORT 11111
 #define DEBUG 1
-extern const unsigned char server_cert[788];
-extern const unsigned char server_key[121];
+extern const unsigned char server_cert[];
+extern const unsigned char server_key[];
 extern unsigned int server_cert_len;
 extern unsigned int server_key_len;
 

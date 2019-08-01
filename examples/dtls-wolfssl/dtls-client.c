@@ -40,22 +40,34 @@
 
 #define SERVER_PORT 11111
 
-extern const unsigned char server_cert[788];
+extern const unsigned char server_cert[];
 extern const unsigned long server_cert_len;
 
 static sock_tls_t skv;
 static sock_tls_t *sk = &skv;
+
+static void usage(const char *cmd_name)
+{
+    printf("Usage: %s <server-address>\n", cmd_name);
+}
 
 int dtls_client(int argc, char **argv)
 {
     int ret = 0;
     char buf[64] = "Hello from DTLS client!";
     int iface;
-    char *addr_str = argv[1];
+    char *addr_str;
+
+    if (argc != 2) {
+        usage(argv[0]);
+        return -1;
+    }
+
+    addr_str = argv[1];
     sock_udp_ep_t local = SOCK_IPV6_EP_ANY;
     sock_udp_ep_t remote = SOCK_IPV6_EP_ANY;
 
-    /* Parsing <address>[:<iface>]:Port */
+    /* Parsing <address> */
     iface = ipv6_addr_split_iface(addr_str);
     if (iface == -1) {
         if (gnrc_netif_numof() == 1) {
@@ -66,16 +78,14 @@ int dtls_client(int argc, char **argv)
     else {
         if (gnrc_netif_get_by_pid(iface) == NULL) {
             puts("ERROR: interface not valid");
+            usage(argv[0]);
             return -1;
         }
         remote.netif = (uint16_t)gnrc_netif_iter(NULL)->pid;
     }
     if (ipv6_addr_from_str((ipv6_addr_t *)remote.addr.ipv6, addr_str) == NULL) {
         puts("ERROR: unable to parse destination address");
-        return -1;
-    }
-    if (argc != 2) {
-        printf("Usage: %s <server-address>\n", argv[0]);
+        usage(argv[0]);
         return -1;
     }
     remote.port = SERVER_PORT;

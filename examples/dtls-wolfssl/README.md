@@ -39,5 +39,5 @@ Riot-to-host can be tested against the DTLS examples provided in the [wolfSSL-ex
 
 ## Boards
 
-Boards that do not support the `../gnrc_networking` example are included
-in the `BOARD_INSUFFICIENT_MEMORY`, plus the board `cc2650stk`.
+Boards that due to insufficient memory are not able to support GNRC are included
+in the `BOARD_INSUFFICIENT_MEMORY`.
