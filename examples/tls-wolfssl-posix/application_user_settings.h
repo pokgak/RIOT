@@ -33,8 +33,8 @@ extern "C" {
 #undef NO_FILESYSTEM
 #define NO_FILESYSTEM
 
-#undef USE_CERT_BUFFERS_2048
-#define USE_CERT_BUFFERS_2048
+#undef USE_CERT_BUFFERS_256
+#define USE_CERT_BUFFERS_256
 
 #ifdef __cplusplus
 }

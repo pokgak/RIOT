@@ -1,33 +1,9 @@
 /*
- * Copyright (C) 2015 Freie Universität Berlin
- * Copyright (C) 2018 Inria
+ * Copyright (C) 2019 Daniele Lacamera
  *
  * This file is subject to the terms and conditions of the GNU Lesser
  * General Public License v2.1. See the file LICENSE in the top level
  * directory for more details.
- */
-/*
- * **** This file incorporates work covered by the following copyright and ****
- * **** permission notice:                                                 ****
- *
- * Copyright (C) 2006-2018 wolfSSL Inc.
- *
- * This file is part of wolfSSL.
- *
- * wolfSSL is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
- *
- * wolfSSL is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1335, USA
- *
  */
 
 /**
@@ -35,7 +11,7 @@
  * @{
  *
  * @file
- * @brief       Demonstrating DTLS 1.2 client using wolfSSL
+ * @brief       Demonstrating DTLS 1.2 server using wolfSSL
  *
  * @author      Daniele Lacamera <daniele@wolfssl.com>
  * @}

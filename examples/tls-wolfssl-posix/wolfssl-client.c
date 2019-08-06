@@ -1,23 +1,11 @@
 /*
- * Copyright (C) 2006-2017 wolfSSL Inc.
+ * Copyright (C) 2019 Kaleb J. Himes <kaleb@wolfssl.com>
  *
- * This file is part of wolfSSL.
  *
- * wolfSSL is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
- *
- * wolfSSL is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1335, USA
+ * This file is subject to the terms and conditions of the GNU Lesser
+ * General Public License v2.1. See the file LICENSE in the top level
+ * directory for more details.
  */
-
 /**
  * @ingroup     examples
  * @{
@@ -41,22 +29,32 @@
 #include <unistd.h>
 
 /* wolfSSL */
+#include "application_user_settings.h"
 #include <wolfssl/ssl.h>
 #include <wolfssl/certs_test.h>
 
-#define DEFAULT_PORT 11111
+#define SERVER_PORT 11111
+#define SERVER_ADDRESS 
 
-int main(void)
+
+int tls_client(int argc, char *argv[])
 {
     int                sockfd;
-    struct sockaddr_in servAddr;
-    char               buff[22] = "Hello wolfSSL Server!\0";
-    char               server_ip[10] = "127.0.0.1\0";
+    struct sockaddr_in6 servAddr;
+    char               buff[] = "Hello, wolfSSL Server!\0";
+    char               *server_ip;
     size_t             len;
 
     /* declare wolfSSL objects */
     WOLFSSL_CTX* ctx;
     WOLFSSL*     ssl;
+    puts("This is the wolfSSL Client!");
+    if (argc != 2) {
+        fprintf(stderr, "Usage: %s IP_ADDR_SERVER\n", argv[0]);
+        return -1;
+    }
+    printf("Client is connecting to server at address %s port 11111...\n", argv[1]);
+    server_ip = argv[1];
 
 /*----------------------------------------------------------------------------*/
 /* TLS Setup:
@@ -65,31 +63,31 @@ int main(void)
  */
 /*----------------------------------------------------------------------------*/
 
-    /* Create a socket that uses an internet IPv4 address,
+    /* Create a socket that uses an internet IPv6 address,
      * Sets the socket to be stream based (TCP),
      * 0 means choose the default protocol. */
-    if ((sockfd = socket(AF_INET, SOCK_STREAM, 0)) == -1) {
+    if ((sockfd = socket(AF_INET6, SOCK_STREAM, 0)) == -1) {
         fprintf(stderr, "ERROR: failed to create the socket\n");
-        exit(-1);
+        return -1;
     }
 
     /* Initialize the server address struct with zeros */
     memset(&servAddr, 0, sizeof(servAddr));
 
     /* Fill in the server address */
-    servAddr.sin_family = AF_INET;             /* using IPv4      */
-    servAddr.sin_port   = htons(DEFAULT_PORT); /* on DEFAULT_PORT */
+    servAddr.sin6_family       = AF_INET6;             /* using IPv6      */
+    servAddr.sin6_port         = htons(SERVER_PORT);  /* on SERVER_PORT */
 
-    /* Get the server IPv4 address from the command line call */
-    if (inet_pton(AF_INET, server_ip, &servAddr.sin_addr) != 1) {
+    /* Get the server IPv6 address from the compile-time string parameter */
+    if (inet_pton(AF_INET6, server_ip, &servAddr.sin6_addr.s6_addr) != 1) {
         fprintf(stderr, "ERROR: invalid address\n");
-        exit(-1);
+        return -1;
     }
 
     /* Connect to the server */
     if (connect(sockfd, (struct sockaddr*) &servAddr, sizeof(servAddr)) == -1) {
-        fprintf(stderr, "ERROR: failed to connect\n");
-        exit(-1);
+        fprintf(stderr, "ERROR: failed to connect, error %d\n", errno);
+        return -1;
     }
 /*----------------------------------------------------------------------------*/
 /* END TCP SETUP, BEGIN TLS */
@@ -101,7 +99,7 @@ int main(void)
     /* Create and initialize WOLFSSL_CTX */
     if ((ctx = wolfSSL_CTX_new(wolfTLSv1_2_client_method())) == NULL) {
         fprintf(stderr, "ERROR: failed to create WOLFSSL_CTX\n");
-        exit(-1);
+        return -1;
     }
 
     /* Load client certificates into WOLFSSL_CTX */
@@ -109,13 +107,13 @@ int main(void)
                                        sizeof_ca_cert_der_2048,
                                        SSL_FILETYPE_ASN1) != SSL_SUCCESS) {
         fprintf(stderr, "ERROR: failed to load ca buffer\n");
-        exit(-1);
+        return -1;
     }
 
     /* Create a WOLFSSL object */
     if ((ssl = wolfSSL_new(ctx)) == NULL) {
         fprintf(stderr, "ERROR: failed to create WOLFSSL object\n");
-        exit(-1);
+        return -1;
     }
 
     /* Attach wolfSSL to the socket */
@@ -124,7 +122,7 @@ int main(void)
     /* Connect to wolfSSL on the server side */
     if (wolfSSL_connect(ssl) != SSL_SUCCESS) {
         fprintf(stderr, "ERROR: failed to connect to wolfSSL\n");
-        exit(-1);
+        return -1;
     }
 
     /* Get a message for the server from stdin */
@@ -134,14 +132,14 @@ int main(void)
     /* Send the message to the server */
     if (wolfSSL_write(ssl, buff, len) != (int) len) {
         fprintf(stderr, "ERROR: failed to write\n");
-        exit(-1);
+        return -1;
     }
 
     /* Read the server data into our buff array */
     memset(buff, 0, sizeof(buff));
     if (wolfSSL_read(ssl, buff, sizeof(buff)-1) == -1) {
         fprintf(stderr, "ERROR: failed to read\n");
-        exit(-1);
+        return -1;
     }
 
     /* Print to stdout any data the server sends */
@@ -153,6 +151,5 @@ int main(void)
     wolfSSL_CTX_free(ctx);  /* Free the wolfSSL context object          */
     wolfSSL_Cleanup();      /* Cleanup the wolfSSL environment          */
     close(sockfd);          /* Close the connection to the server       */
-
-    exit(0);               /* Return reporting a success               */
+    return 0;               /* Return reporting a success               */
 }

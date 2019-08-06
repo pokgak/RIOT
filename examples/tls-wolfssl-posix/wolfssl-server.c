@@ -1,23 +1,11 @@
 /*
- * Copyright (C) 2006-2017 wolfSSL Inc.
+ * Copyright (C) 2019 Kaleb J. Himes <kaleb@wolfssl.com>
  *
- * This file is part of wolfSSL.
  *
- * wolfSSL is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
- *
- * wolfSSL is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1335, USA
+ * This file is subject to the terms and conditions of the GNU Lesser
+ * General Public License v2.1. See the file LICENSE in the top level
+ * directory for more details.
  */
-
 /**
  * @ingroup     examples
  * @{
@@ -41,16 +29,18 @@
 #include <unistd.h>
 
 /* wolfSSL */
+#include "application_user_settings.h"
 #include <wolfssl/ssl.h>
 #include <wolfssl/certs_test.h>
 
 #define DEFAULT_PORT 11111
 
-int main(void)
+
+int tls_server(int argc, char *argv[])
 {
     int                sockfd;
-    struct sockaddr_in servAddr;
-    struct sockaddr_in clientAddr;
+    struct sockaddr_in6 servAddr;
+    struct sockaddr_in6 clientAddr;
     socklen_t          size = sizeof(clientAddr);
     char               buff[256];
     int                shutdown = 0;
@@ -59,7 +49,7 @@ int main(void)
     WOLFSSL_CTX* ctx;
 
     puts("This is the wolfSSL Server!");
-    puts("Server is running on 127.0.0.1 and listening on port 11111");
+    puts("Server is listening on port 11111");
 
 /*----------------------------------------------------------------------------*/
 /* TLS Setup:
@@ -68,10 +58,10 @@ int main(void)
  */
 /*----------------------------------------------------------------------------*/
 
-    /* Create a socket that uses an internet IPv4 address,
+    /* Create a socket that uses an internet IPv6 address,
      * Sets the socket to be stream based (TCP),
      * 0 means choose the default protocol. */
-    if ((sockfd = socket(AF_INET, SOCK_STREAM, 0)) == -1) {
+    if ((sockfd = socket(AF_INET6, SOCK_STREAM, 0)) == -1) {
         fprintf(stderr, "ERROR: failed to create the socket\n");
         return -1;
     }
@@ -80,11 +70,10 @@ int main(void)
     memset(&servAddr, 0, sizeof(servAddr));
 
     /* Fill in the server address */
-    servAddr.sin_family      = AF_INET;             /* using IPv4      */
-    servAddr.sin_port        = htons(DEFAULT_PORT); /* on DEFAULT_PORT */
-    servAddr.sin_addr.s_addr = INADDR_ANY;          /* from anywhere   */
+    servAddr.sin6_family       = AF_INET6;             /* using IPv6      */
+    servAddr.sin6_port         = htons(DEFAULT_PORT);  /* on DEFAULT_PORT */
 
-    /* Bind the server socket to our port */
+    /* Bind the server socket to local port */
     if (bind(sockfd, (struct sockaddr*)&servAddr, sizeof(servAddr)) == -1) {
         fprintf(stderr, "ERROR: failed to bind\n");
         return -1;
@@ -95,6 +84,9 @@ int main(void)
         fprintf(stderr, "ERROR: failed to listen\n");
         return -1;
     }
+/*----------------------------------------------------------------------------*/
+/* END TCP SETUP, BEGIN TLS */
+/*----------------------------------------------------------------------------*/
 
     /* Initialize wolfSSL */
     wolfSSL_Init();
@@ -106,16 +98,16 @@ int main(void)
     }
 
     /* Load server certificates into WOLFSSL_CTX */
-    if (wolfSSL_CTX_use_certificate_buffer(ctx, server_cert_der_2048,
-                                         sizeof_server_cert_der_2048,
+    if (wolfSSL_CTX_use_certificate_buffer(ctx, serv_ecc_comp_der_256,
+                                         sizeof_serv_ecc_comp_der_256,
                                          SSL_FILETYPE_ASN1) != SSL_SUCCESS) {
         fprintf(stderr, "ERROR: failed to load server_cert_der_2048\n");
         return -1;
     }
 
     /* Load server key into WOLFSSL_CTX */
-    if (wolfSSL_CTX_use_PrivateKey_buffer(ctx, server_key_der_2048,
-                                        sizeof_server_key_der_2048,
+    if (wolfSSL_CTX_use_PrivateKey_buffer(ctx, ecc_key_der_256,
+                                        sizeof_ecc_key_der_256,
                                         SSL_FILETYPE_ASN1) != SSL_SUCCESS) {
         fprintf(stderr, "ERROR: failed to load server_key_der_2048\n");
         return -1;
