@@ -1,3 +1,12 @@
+/*
+ * Copyright (C) 2019 Daniele Lacamera
+ *
+ *
+ * This file is subject to the terms and conditions of the GNU Lesser
+ * General Public License v2.1. See the file LICENSE in the top level
+ * directory for more details.
+ */
+
 /* @defgroup    module sock_tls
  * @ingroup     pkg_wolfssl
  * @brief       Sock submodule for TLS/DTLS sessions

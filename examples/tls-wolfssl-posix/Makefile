@@ -21,6 +21,7 @@ BOARD_INSUFFICIENT_MEMORY = blackpill bluepill i-nucleo-lrwan1 \
                             saml10-xpro saml11-xpro stm32f0discovery
 
 LWIP_IPV4 ?= 0
+CFLAGS += -DTHREAD_STACKSIZE_MAIN=20000
 
 ifneq (0, $(LWIP_IPV4))
   USEMODULE += ipv4_addr
@@ -56,7 +57,7 @@ USEMODULE += shell_commands
 CFLAGS+=-Wno-unused-parameter -Wno-unused-variable
 
 # Uncomment next line to enable debug symbols
-CFLAGS+=-g -ggdb3
+#CFLAGS+=-g -ggdb3
 
 # Change this to 0 show compiler invocation lines by default:
 QUIET ?= 1

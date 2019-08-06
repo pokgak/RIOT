@@ -1,11 +1,7 @@
-APPLICATION = wolf_crypto_test
+APPLICATION = wolfssl-test
 
 # If no BOARD is found in the environment, use this default:
-#BOARD ?= native
-#BOARD ?= samd21-xpro #Currently missing implementation for strncasecmp
-#BOARD ?= pic32-wifire
-#BOARD ?= frdm-k64f
-BOARD ?= stm32f4discovery
+BOARD ?= native
 
 # BOARD_WHITELIST := To Be Determined
 # BOARD_BLACKLIST := To Be Determined
@@ -28,20 +24,14 @@ CFLAGS += -DTHREAD_STACKSIZE_MAIN=35000
 # Change this to 0 show compiler invocation lines by default:
 QUIET ?= 1
 
-# May need these for seeding wolfCrypt DRBG
-#USEMODULE += prng_minstd
 
 USEPKG += wolfssl
 USEMODULE += wolfcrypt wolfcrypt-test wolfcrypt_sha512 wolfcrypt_curve25519  \
 			 wolfcrypt_ed25519 wolfcrypt_chacha wolfcrypt_poly1305 wolfcrypt_aes \
 			 wolfcrypt_ecc wolfcrypt_asn wolfcrypt_random
 
-ifneq (native, $(BOARD))
-# for TCP/IP recommend working with lwip or other third-party TCP/IP stack.
-# Also need third-party string library if attempting to use ecc that will
-# implement strncasecomp
-#    USEPKG += lwip
-#    export CFLAGS += "-DHAVE_LWIP_NATIVE=1"
-endif
+# Comment the following line to disable full-benchmark test
+USEMODULE += wolfcrypt-benchmark
+
 
 include $(RIOTBASE)/Makefile.include

@@ -42,17 +42,6 @@ static msg_t _main_msg_queue[MAIN_QUEUE_SIZE];
 extern int tls_client(int argc, char **argv);
 extern int tls_server(int argc, char **argv);
 
-#ifdef MODULE_WOLFCRYPT_TEST
-extern int wolfcrypt_test(void* args);
-static int wolftest(int argc, char **argv)
-{
-    (void)argc;
-    (void)argv;
-    wolfcrypt_test(NULL);
-    return 0;
-}
-#endif
-
 static int ip_show(int argc, char **argv)
 {
     (void)argc;
@@ -75,9 +64,6 @@ static int ip_show(int argc, char **argv)
 static const shell_command_t shell_commands[] = {
     { "tlsc", "Start a TLS client", tls_client },
     { "tlss", "Start and stop a TLS server", tls_server },
-#ifdef MODULE_WOLFCRYPT_TEST
-    { "wolftest", "Perform wolfcrypt porting test", wolftest },
-#endif
     { "ip", "Shows assigned IPv6 addresses", ip_show},
     { NULL, NULL, NULL }
 };
