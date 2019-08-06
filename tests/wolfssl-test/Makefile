@@ -3,9 +3,21 @@ APPLICATION = wolfssl-test
 # If no BOARD is found in the environment, use this default:
 BOARD ?= native
 
-# BOARD_WHITELIST := To Be Determined
-# BOARD_BLACKLIST := To Be Determined
-# BOARD_INSUFFICIENT_MEMORY := To Be Determined
+# Only 32-bit targets
+BOARD_BLACKLIST := arduino-duemilanove arduino-leonardo \
+                   arduino-mega2560 arduino-nano \
+                   arduino-uno chronos esp8266-esp-12x esp8266-olimex-mod \
+                   esp8266-sparkfun-thing jiminy-mega256rfr2 mega-xplained \
+                   msb-430 msb-430h telosb waspmote-pro \
+                   wsn430-v1_3b wsn430-v1_4 z1
+
+# BOARD_INSUFFICIENT_MEMORY:= None known :)
+#
+# If the test fails to run on a target, disable the algorithms
+# that you do not plan to use, by removing the associated wolfcrypt_* modules
+# from USEMODULE list below.
+#
+# BOARD_INSUFFICIENT_MEMORY :=
 
 # This has to be the absolute path to the RIOT base directory:
 RIOTBASE ?= $(CURDIR)/../..
