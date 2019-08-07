@@ -45,5 +45,8 @@ USEMODULE += wolfcrypt wolfcrypt-test wolfcrypt_sha512 wolfcrypt_curve25519  \
 # Comment the following line to disable full-benchmark test
 USEMODULE += wolfcrypt-benchmark
 
+ifneq ($(BOARD),native)
+  CFLAGS += -DBENCH_EMBEDDED
+endif
 
 include $(RIOTBASE)/Makefile.include
