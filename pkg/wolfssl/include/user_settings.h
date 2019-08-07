@@ -73,6 +73,7 @@ int strncasecmp(const char *s1, const char * s2, unsigned int sz);
 #define TFM_TIMING_RESISTANT
 #define USE_CERT_BUFFERS_2048
 #define NO_RC4
+#define WOLFSSL_STATIC_PSK
 
 /* Modules */
 #undef WC_NO_RNG
