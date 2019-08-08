@@ -18,6 +18,7 @@
  */
 
 #include <wolfssl/ssl.h>
+#include <wolfssl/error-ssl.h>
 #include <sock_tls.h>
 #include <net/sock.h>
 
@@ -44,6 +45,8 @@ int dtls_client(int argc, char **argv)
     char buf[64] = "Hello from DTLS client!";
     int iface;
     char *addr_str;
+    int connect_timeout = 0;
+    const int max_connect_timeouts = 5;
 
     if (argc != 2) {
         usage(argv[0]);
@@ -92,14 +95,28 @@ int dtls_client(int argc, char **argv)
         return -1;
     }
 
+    if (sock_dtls_session_create(sk) < 0)
+        return -1;
+    printf("connecting to server...");
     /* attempt to connect until the connection is successful */
     do {
-        printf("connecting to server...\n");
-        if (sock_dtls_session_create(sk) < 0)
-            return -1;
         ret = wolfSSL_connect(sk->ssl);
-        if (ret != SSL_SUCCESS) {
-            sock_dtls_session_destroy(sk);
+        if ((ret != SSL_SUCCESS)) {
+            if(wolfSSL_get_error(sk->ssl, ret) == SOCKET_ERROR_E) {
+                printf("Socket error: reconnecting...\n");
+                sock_dtls_session_destroy(sk);
+                connect_timeout = 0;
+                if (sock_dtls_session_create(sk) < 0)
+                    return -1;
+            }
+            if ((wolfSSL_get_error(sk->ssl, ret) == WOLFSSL_ERROR_WANT_READ) &&
+                    (connect_timeout++ >= max_connect_timeouts)) {
+                printf("Server not responding: reconnecting...\n");
+                sock_dtls_session_destroy(sk);
+                connect_timeout = 0;
+                if (sock_dtls_session_create(sk) < 0)
+                    return -1;
+            }
         }
     } while(ret != SSL_SUCCESS);
 
