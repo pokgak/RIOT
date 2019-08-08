@@ -15,9 +15,6 @@
 #include <wolfssl/ssl.h>
 #include <wolfssl/internal.h>
 
-#define MODE_TLS 0
-#define MODE_DTLS 1
-
 void sock_dtls_close(sock_tls_t *sk)
 {
     sock_udp_close(&sk->conn.udp);
