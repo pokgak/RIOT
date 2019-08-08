@@ -41,9 +41,10 @@ static sock_tls_t *sk = &skv;
 
 static const char Test_dtls_string[] = "DTLS OK!";
 
+#define APP_DTLS_BUF_SIZE 64
 int dtls_server(int argc, char **argv)
 {
-    char buf[64];
+    char buf[APP_DTLS_BUF_SIZE];
     int ret;
     sock_udp_ep_t local = SOCK_IPV6_EP_ANY;
     local.port = SERVER_PORT;
@@ -91,7 +92,7 @@ int dtls_server(int argc, char **argv)
 
         /* Wait until data is received */
         printf("Connection accepted\r\n");
-        ret = wolfSSL_read(sk->ssl, buf, 64);
+        ret = wolfSSL_read(sk->ssl, buf, APP_DTLS_BUF_SIZE);
         if (ret > 0) {
             buf[ret] = (char)0;
             printf("Received '%s'\r\n", buf);
