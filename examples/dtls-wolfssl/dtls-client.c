@@ -39,10 +39,11 @@ static void usage(const char *cmd_name)
     printf("Usage: %s <server-address>\n", cmd_name);
 }
 
+#define APP_DTLS_BUF_SIZE 64
 int dtls_client(int argc, char **argv)
 {
     int ret = 0;
-    char buf[64] = "Hello from DTLS client!";
+    char buf[APP_DTLS_BUF_SIZE] = "Hello from DTLS client!";
     int iface;
     char *addr_str;
     int connect_timeout = 0;
@@ -128,7 +129,7 @@ int dtls_client(int argc, char **argv)
 
     /* wait for a reply, indefinitely */
     do {
-        ret = wolfSSL_read(sk->ssl, buf, 63);
+        ret = wolfSSL_read(sk->ssl, buf, APP_DTLS_BUF_SIZE - 1);
         printf("wolfSSL_read returned %d\r\n", ret);
     } while (ret <= 0);
     buf[ret] = (char)0;
