@@ -259,13 +259,32 @@ static int _verify_ecdsa_key(struct dtls_context_t *ctx,
 #endif /* DTLS_ECC */
 
 int sock_dtls_create(sock_dtls_t *sock, sock_udp_t *udp_sock,
-                     credman_tag_t tag,unsigned method)
+                     credman_tag_t tag, unsigned version, unsigned role)
 {
     assert(sock && udp_sock);
 
-    (void)method;
+    if (role != SOCK_DTLS_CLIENT && role != SOCK_DTLS_SERVER) {
+        DEBUG("sock_dtls: invalid role\n");
+        return -1;
+    }
+
+    /* check if tinydtls compiled with wanted DTLS version */
+    if (version < SOCK_DTLS_1_0 || version > SOCK_DTLS_1_3) {
+        DEBUG("sock_dtls: invalid version\n");
+        return -1;
+    }
+    else if ((version == SOCK_DTLS_1_2) &&
+        (DTLS_VERSION != 0xfefd)) {
+        DEBUG("sock_dtls: tinydtls not compiled with support for DTLS 1.2\n");
+        return -1;
+    }
+    else if (version == SOCK_DTLS_1_0 || version == SOCK_DTLS_1_3) {
+        DEBUG("sock_dtls: tinydtls only support DTLS 1.2\n");
+        return -1;
+    }
+
     sock->udp_sock = udp_sock;
-    sock->role = DTLS_CLIENT;
+    sock->role = role;
     sock->tag = tag;
     sock->dtls_ctx = dtls_new_context(sock);
     if (!sock->dtls_ctx) {
@@ -277,13 +296,7 @@ int sock_dtls_create(sock_dtls_t *sock, sock_udp_t *udp_sock,
     return 0;
 }
 
-void sock_dtls_init_server(sock_dtls_t *sock)
-{
-    /* just a placeholder for now */
-    sock->role = DTLS_SERVER;
-}
-
-int sock_dtls_establish_session(sock_dtls_t *sock, sock_udp_ep_t *ep,
+int sock_dtls_session_create(sock_dtls_t *sock, sock_udp_ep_t *ep,
                                 sock_dtls_session_t *remote)
 {
     uint8_t rcv_buffer[DTLS_HANDSHAKE_BUFSIZE];
@@ -333,7 +346,7 @@ int sock_dtls_establish_session(sock_dtls_t *sock, sock_udp_ep_t *ep,
     return 0;
 }
 
-void sock_dtls_close_session(sock_dtls_t *sock, sock_dtls_session_t *remote)
+void sock_dtls_session_destroy(sock_dtls_t *sock, sock_dtls_session_t *remote)
 {
     dtls_close(sock->dtls_ctx, &remote->dtls_session);
 }
@@ -413,7 +426,7 @@ ssize_t sock_dtls_recv(sock_dtls_t *sock, sock_dtls_session_t *remote,
 
 }
 
-void sock_dtls_destroy(sock_dtls_t *sock)
+void sock_dtls_close(sock_dtls_t *sock)
 {
     sock_udp_close(sock->udp_sock);
     dtls_free_context(sock->dtls_ctx);
