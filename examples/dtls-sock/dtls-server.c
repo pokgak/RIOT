@@ -30,7 +30,7 @@
 #define DTLS_DEFAULT_PORT (20220) /* DTLS default port */
 #endif
 
-#define DTLS_SOCK_SERVER_TAG (3)
+#define SOCK_DTLS_SERVER_TAG (10)
 #define DTLS_STOP_SERVER_MSG 0x4001 /* Custom IPC type msg. */
 #define READER_QUEUE_SIZE (8U)
 
@@ -69,8 +69,8 @@ void *dtls_server_wrapper(void *arg)
     local.port = DTLS_DEFAULT_PORT;
     sock_udp_create(&udp_sock, &local, NULL, 0);
 
-
-    res = sock_dtls_create(&sock, &udp_sock, DTLS_SOCK_SERVER_TAG, 0);
+    res = sock_dtls_create(&sock, &udp_sock, SOCK_DTLS_SERVER_TAG,
+                           SOCK_DTLS_1_2, SOCK_DTLS_SERVER);
     if (res < 0) {
         puts("Error creating DTLS sock");
         return 0;
@@ -79,7 +79,7 @@ void *dtls_server_wrapper(void *arg)
 #ifdef DTLS_PSK
     credman_credential_t credential = {
         .type = CREDMAN_TYPE_PSK,
-        .tag = DTLS_SOCK_SERVER_TAG,
+        .tag = SOCK_DTLS_SERVER_TAG,
         .params = {
             .psk = {
                 .key = { .s = psk_key_0, .len = sizeof(psk_key_0) - 1, },
@@ -95,7 +95,7 @@ void *dtls_server_wrapper(void *arg)
 #ifdef DTLS_ECC
     credman_credential_t credential = {
         .type = CREDMAN_TYPE_ECDSA,
-        .tag = DTLS_SOCK_SERVER_TAG,
+        .tag = SOCK_DTLS_SERVER_TAG,
         .params = {
             .ecdsa = {
                 .private_key = server_ecdsa_priv_key,
@@ -114,8 +114,6 @@ void *dtls_server_wrapper(void *arg)
         return 0;
     }
 #endif /* DTLS_ECC */
-
-    sock_dtls_init_server(&sock);
 
     while (active) {
         msg_try_receive(&msg);
@@ -142,7 +140,9 @@ void *dtls_server_wrapper(void *arg)
         }
     }
 
-    sock_dtls_destroy(&sock);
+    sock_dtls_session_destroy(&sock, &session);
+    sock_dtls_close(&sock);
+    sock_udp_close(&udp_sock);
     puts("Terminating");
     msg_reply(&msg, &msg);              /* Basic answer to the main thread */
     return 0;

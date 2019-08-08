@@ -29,7 +29,7 @@
 #define DTLS_DEFAULT_PORT 20220 /* DTLS default port */
 #endif
 
-#define DTLS_SOCK_CLIENT_TAG (2)
+#define SOCK_DTLS_CLIENT_TAG (2)
 
 #ifdef DTLS_PSK
 static uint8_t psk_id_0[] = PSK_DEFAULT_IDENTITY;
@@ -41,7 +41,7 @@ static ecdsa_public_key_t other_pubkeys[] = {
 };
 #endif /* DTLS_ECC */
 
-static void client_send(char *addr_str, char *data, size_t datalen)
+static int client_send(char *addr_str, char *data, size_t datalen)
 {
     uint8_t rcv[512];
     ssize_t res;
@@ -59,7 +59,7 @@ static void client_send(char *addr_str, char *data, size_t datalen)
     if (iface >= 0) {
         if (gnrc_netif_get_by_pid(iface) == NULL) {
             puts("Invalid network interface");
-            return;
+            return -1;
         }
         remote.netif = iface;
     } else if (gnrc_netif_numof() == 1) {
@@ -71,28 +71,28 @@ static void client_send(char *addr_str, char *data, size_t datalen)
         remote.netif = SOCK_ADDR_ANY_NETIF;
     }
 
-    /* get ip */
     if (!ipv6_addr_from_str((ipv6_addr_t *)remote.addr.ipv6, addr_str)) {
         puts("Error parsing destination address");
-        return;
+        return -1;
     }
 
-    res = sock_udp_create(&udp_sock, &local, NULL, 0);
-    if (res < 0) {
+    if (sock_udp_create(&udp_sock, &local, NULL, 0) < 0) {
         puts("Error creating UDP sock");
-        return;
+        return -1;
     }
 
-    res = sock_dtls_create(&dtls_sock, &udp_sock, DTLS_SOCK_CLIENT_TAG, 0);
-    if (res < 0) {
+    if (sock_dtls_create(&dtls_sock, &udp_sock,
+                        SOCK_DTLS_CLIENT_TAG,
+                        SOCK_DTLS_1_2, SOCK_DTLS_CLIENT) < 0) {
         puts("Error creating DTLS sock");
-        return;
+        sock_udp_close(&udp_sock);
+        return -1;
     }
 
 #ifdef DTLS_PSK
     credman_credential_t credential = {
         .type = CREDMAN_TYPE_PSK,
-        .tag = DTLS_SOCK_CLIENT_TAG,
+        .tag = SOCK_DTLS_CLIENT_TAG,
         .params = {
             .psk = {
                 .key = { .s = psk_key_0, .len = sizeof(psk_key_0) - 1, },
@@ -103,13 +103,13 @@ static void client_send(char *addr_str, char *data, size_t datalen)
     res = credman_add(&credential);
     if (res < 0 && res != CREDMAN_EXIST) {
         printf("Error cannot add credential to system: %d\n", (int)res);
-        return;
+        return -1;
     }
 #endif /* DTLS_PSK */
 #ifdef DTLS_ECC
     credman_credential_t credential = {
         .type = CREDMAN_TYPE_ECDSA,
-        .tag = DTLS_SOCK_CLIENT_TAG,
+        .tag = SOCK_DTLS_CLIENT_TAG,
         .params = {
             .ecdsa = {
                 .private_key = client_ecdsa_priv_key,
@@ -125,37 +125,35 @@ static void client_send(char *addr_str, char *data, size_t datalen)
     res = credman_add(&credential);
     if (res < 0 && res != CREDMAN_EXIST) {
         printf("Error cannot add credential to system: %d\n", (int)res);
-        return;
+        return -1;
     }
 #endif /* DTLS_ECC */
 
-    res = sock_dtls_establish_session(&dtls_sock, &remote, &session);
-    if (res < 0) {
-        printf("Error establishing session: %d\n", (int)res);
-        goto end;
+    if (sock_dtls_session_create(&dtls_sock, &remote, &session) < 0) {
+        printf("Error creating session: %d\n", (int)res);
+        sock_dtls_close(&dtls_sock);
+        sock_udp_close(&udp_sock);
+        return -1;
     }
 
-    res = sock_dtls_send(&dtls_sock, &session, data, datalen);
-    if (res < 0) {
-        printf("Error sending DTLS message: %d\n", (int)res);
-        goto end;
+    if (sock_dtls_send(&dtls_sock, &session, data, datalen) < 0) {
+        puts("Error sending data");
     }
-    printf("Sent %d bytes of DTLS message: %s\n", (int)res, data);
+    else {
+        printf("Sent DTLS message\n");
+        if (sock_dtls_recv(&dtls_sock, &session, rcv, sizeof(rcv), SOCK_NO_TIMEOUT) < 0) {
+            printf("Error receiving DTLS message\n");
+        }
+        else {
+            printf("Received DTLS message\n");
+        }
+    }
 
-    res = sock_dtls_recv(&dtls_sock, &session, rcv, sizeof(rcv), SOCK_NO_TIMEOUT);
-    if (res < 0) {
-        printf("Error receiving DTLS message: %d\n", (int)res);
-        goto end;
-    }
-    else if (res == 0) {
-        puts("No message received");
-    }
-    printf("Received %d bytes of DTLS message: %.*s\n", (int)res, (int)res, rcv);
-
-end:
     puts("Terminating");
-    sock_dtls_close_session(&dtls_sock, &session);
-    sock_dtls_destroy(&dtls_sock);
+    sock_dtls_session_destroy(&dtls_sock, &session);
+    sock_dtls_close(&dtls_sock);
+    sock_udp_close(&udp_sock);
+    return 0;
 }
 
 int dtls_client_cmd(int argc, char **argv)
@@ -164,6 +162,6 @@ int dtls_client_cmd(int argc, char **argv)
         printf("usage %s <addr> <data>\n", argv[0]);
         return 1;
     }
-    client_send(argv[1], argv[2], strlen(argv[2]));
-    return 0;
+
+    return client_send(argv[1], argv[2], strlen(argv[2]));
 }
