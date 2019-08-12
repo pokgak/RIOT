@@ -61,7 +61,7 @@
  *     sock_udp_ep_t local = SOCK_IPV6_EP_ANY;
  *     local.port = SERVER_PORT;
  *
- *     if (sock_dtls_create(sk, &local, NULL, 0, wolfDTLSv1_2_server_method()) != 0) {
+ *     if (sock_tls_create(sk, &local, NULL, 0, wolfDTLSv1_2_server_method()) != 0) {
  *         printf("Failed to create DTLS socket context\r\n");
  *         return -1;
  *     }
@@ -78,7 +78,7 @@
  *         printf("Failed to load private key from memory.\r\n");
  *         return -1;
  *     }
- *     ret = sock_dtls_session_create(sk);
+ *     ret = sock_tls_session_create(sk);
  *     if (ret < 0)
  *     {
  *         printf("Failed to create DTLS session (err: %s)\r\n", strerror(-ret));
@@ -99,8 +99,8 @@
  *         printf("Sending 'DTLS OK'...\r\n");
  *         wolfSSL_write(sk->ssl, Test_dtls_string, sizeof(Test_dtls_string));
  *         printf("Closing connection.\r\n");
- *         sock_dtls_session_destroy(sk);
- *         sock_dtls_close(sk);
+ *         sock_tls_session_destroy(sk);
+ *         sock_tls_close(sk);
  *         break;
  *     }
  *     return 0;
@@ -144,7 +144,7 @@
  * sock_udp_ep_t local = SOCK_IPV6_EP_ANY;
  * local.port = SERVER_PORT;
  *
- *  if (sock_dtls_create(sk, &local, NULL, 0, wolfDTLSv1_2_server_method()) != 0) {
+ *  if (sock_tls_create(sk, &local, NULL, 0, wolfDTLSv1_2_server_method()) != 0) {
  *      printf("ERROR: Unable to create DTLS sock\r\n");
  *      return -1;
  *  }
@@ -181,7 +181,7 @@
  *
  *
  * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ {.c}
- * ret = sock_dtls_session_create(sk);
+ * ret = sock_tls_session_create(sk);
  * if (ret < 0)
  * {
  *     printf("Failed to create DTLS session (err: %s)\r\n", strerror(-ret));
@@ -211,8 +211,8 @@
  * The session is terminated, and the associated socket is closed.
  *
  * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ {.c}
- *         sock_dtls_session_destroy(sk);
- *         sock_dtls_close(sk);
+ *         sock_tls_session_destroy(sk);
+ *         sock_tls_close(sk);
  *         break;
  *     }
  *     return 0;
@@ -265,7 +265,7 @@ extern "C" {
  *                      There are several options for selecting the desired protocol.
  *                      wolfSSL currently supports DTLS 1.0, and DTLS 1.2. Each of these
  *                      protocols have a corresponding function that can be used as last
- *                      argument to `sock_dtls_create`. The possible client and server
+ *                      argument to `sock_tls_create`. The possible client and server
  *                      protocol options are: `wolfDTLSv1_client_method()`, `wolfDTLSv1_server_method()`,
  *                      `wolfDTLSv1_2_client_method()` and `wolfDTLSv1_server_method`.
  *
@@ -284,7 +284,7 @@ extern "C" {
  * @return  -ENOMEM, if not enough resources can be provided for `sock` to be
  *          created.
  */
-int sock_dtls_create(sock_tls_t *sock, const sock_udp_ep_t *local, const sock_udp_ep_t *remote, uint16_t flags, WOLFSSL_METHOD *method);
+int sock_tls_create(sock_tls_t *sock, const sock_udp_ep_t *local, const sock_udp_ep_t *remote, uint16_t flags, WOLFSSL_METHOD *method);
 
 /**
  * @brief   Sets the endpoint address for the remote DTLS peer associated to this sock object
@@ -296,21 +296,21 @@ int sock_dtls_create(sock_tls_t *sock, const sock_udp_ep_t *local, const sock_ud
  * @param[in] addr      Remote end point for the DTLS session.
  *
  */
-void sock_dtls_set_endpoint(sock_tls_t *sk, const sock_udp_ep_t *addr);
+void sock_tls_set_endpoint(sock_tls_t *sk, const sock_udp_ep_t *addr);
 
 /**
  * @brief   Creates a new DTLS session from an existing `sock_tls_t` object.
  *
  * @pre `(sk != NULL)`
  *
- * @param[in] sk      The sock object previously created using @ref sock_dtls_create
+ * @param[in] sk      The sock object previously created using @ref sock_tls_create
  *
  * @return  0 on success.
  * @return  -EINVAL, if @sock is null or the SSL context is not initialized yet.
  * @return  -ENOMEM, if not enough resources can be provided for the session to be
  *          created
  */
-int sock_dtls_session_create(sock_tls_t *sk);
+int sock_tls_session_create(sock_tls_t *sk);
 
 /**
  * @brief   Destroys the DTLS session associated to the sock object.
@@ -320,7 +320,7 @@ int sock_dtls_session_create(sock_tls_t *sk);
  * @param[in] sk      The sock object containing the session to destroy.
  *
  */
-void sock_dtls_session_destroy(sock_tls_t *sk);
+void sock_tls_session_destroy(sock_tls_t *sk);
 
 /**
  * @brief   Closes the socket connection associated to the DTLS session.
@@ -330,7 +330,7 @@ void sock_dtls_session_destroy(sock_tls_t *sk);
  * @param[in] sk      The sock object containing the UDP socket to close.
  *
  */
-void sock_dtls_close(sock_tls_t *sk);
+void sock_tls_close(sock_tls_t *sk);
 
 
 #ifdef MODULE_SOCK_TCP

@@ -15,18 +15,18 @@
 #include <wolfssl/ssl.h>
 #include <wolfssl/internal.h>
 
-void sock_dtls_close(sock_tls_t *sk)
+void sock_tls_close(sock_tls_t *sk)
 {
     sock_udp_close(&sk->conn.udp);
 }
 
-void sock_dtls_set_endpoint(sock_tls_t *sk, const sock_udp_ep_t *addr)
+void sock_tls_set_endpoint(sock_tls_t *sk, const sock_udp_ep_t *addr)
 {
     printf("wolfSSL: Setting peer address and port\n");
     memcpy(&sk->peer_addr, addr, sizeof (sock_udp_ep_t));
 }
 
-int sock_dtls_create(sock_tls_t *sock, const sock_udp_ep_t *local, const sock_udp_ep_t *remote, uint16_t flags, WOLFSSL_METHOD *method)
+int sock_tls_create(sock_tls_t *sock, const sock_udp_ep_t *local, const sock_udp_ep_t *remote, uint16_t flags, WOLFSSL_METHOD *method)
 {
     int ret;
     if (!sock)
@@ -69,12 +69,12 @@ static void tls_session_destroy(sock_tls_t *sk)
     wolfSSL_free(sk->ssl);
 }
 
-int sock_dtls_session_create(sock_tls_t *sk)
+int sock_tls_session_create(sock_tls_t *sk)
 {
     return tls_session_create(sk);
 }
 
-void sock_dtls_session_destroy(sock_tls_t *sk)
+void sock_tls_session_destroy(sock_tls_t *sk)
 {
     tls_session_destroy(sk);
 }
