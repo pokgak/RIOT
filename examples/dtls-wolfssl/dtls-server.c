@@ -52,7 +52,7 @@ int dtls_server(int argc, char **argv)
     (void)argc;
     (void)argv;
 
-    if (sock_dtls_create(sk, &local, NULL, 0, wolfDTLSv1_2_server_method()) != 0) {
+    if (sock_tls_create(sk, &local, NULL, 0, wolfDTLSv1_2_server_method()) != 0) {
         printf("ERROR: Unable to create DTLS sock\r\n");
         return -1;
     }
@@ -74,7 +74,7 @@ int dtls_server(int argc, char **argv)
     }
 
     /* Create the DTLS session */
-    ret = sock_dtls_session_create(sk);
+    ret = sock_tls_session_create(sk);
     if (ret < 0)
     {
         printf("Failed to create DTLS session (err: %s)\r\n", strerror(-ret));
@@ -104,8 +104,8 @@ int dtls_server(int argc, char **argv)
 
         /* Cleanup/shutdown */
         printf("Closing connection.\r\n");
-        sock_dtls_session_destroy(sk);
-        sock_dtls_close(sk);
+        sock_tls_session_destroy(sk);
+        sock_tls_close(sk);
         break;
     }
     return 0;

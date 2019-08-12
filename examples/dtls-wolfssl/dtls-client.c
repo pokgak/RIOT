@@ -80,7 +80,7 @@ int dtls_client(int argc, char **argv)
         return -1;
     }
     remote.port = SERVER_PORT;
-    if (sock_dtls_create(sk, &local, &remote, 0, wolfDTLSv1_2_client_method()) != 0) {
+    if (sock_tls_create(sk, &local, &remote, 0, wolfDTLSv1_2_client_method()) != 0) {
         puts("ERROR: Unable to create DTLS sock");
         return -1;
     }
@@ -96,7 +96,7 @@ int dtls_client(int argc, char **argv)
         return -1;
     }
 
-    if (sock_dtls_session_create(sk) < 0)
+    if (sock_tls_session_create(sk) < 0)
         return -1;
     printf("connecting to server...");
     /* attempt to connect until the connection is successful */
@@ -105,24 +105,24 @@ int dtls_client(int argc, char **argv)
         if ((ret != SSL_SUCCESS)) {
             if(wolfSSL_get_error(sk->ssl, ret) == SOCKET_ERROR_E) {
                 printf("Socket error: reconnecting...\n");
-                sock_dtls_session_destroy(sk);
+                sock_tls_session_destroy(sk);
                 connect_timeout = 0;
-                if (sock_dtls_session_create(sk) < 0)
+                if (sock_tls_session_create(sk) < 0)
                     return -1;
             }
             if ((wolfSSL_get_error(sk->ssl, ret) == WOLFSSL_ERROR_WANT_READ) &&
                     (connect_timeout++ >= max_connect_timeouts)) {
                 printf("Server not responding: reconnecting...\n");
-                sock_dtls_session_destroy(sk);
+                sock_tls_session_destroy(sk);
                 connect_timeout = 0;
-                if (sock_dtls_session_create(sk) < 0)
+                if (sock_tls_session_create(sk) < 0)
                     return -1;
             }
         }
     } while(ret != SSL_SUCCESS);
 
     /* set remote endpoint */
-    sock_dtls_set_endpoint(sk, &remote);
+    sock_tls_set_endpoint(sk, &remote);
 
     /* send the hello message */
     wolfSSL_write(sk->ssl, buf, strlen(buf));
@@ -137,7 +137,7 @@ int dtls_client(int argc, char **argv)
 
     /* Clean up and exit. */
     printf("Closing connection.\r\n");
-    sock_dtls_session_destroy(sk);
-    sock_dtls_close(sk);
+    sock_tls_session_destroy(sk);
+    sock_tls_close(sk);
     return 0;
 }
