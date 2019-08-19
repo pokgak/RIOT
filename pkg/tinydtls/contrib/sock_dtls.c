@@ -297,7 +297,7 @@ int sock_dtls_create(sock_dtls_t *sock, sock_udp_t *udp_sock,
 }
 
 int sock_dtls_session_create(sock_dtls_t *sock, const sock_udp_ep_t *ep,
-                                sock_dtls_session_t *remote)
+                             sock_dtls_session_t *remote)
 {
     uint8_t rcv_buffer[DTLS_HANDSHAKE_BUFSIZE];
     msg_t msg;
@@ -315,19 +315,12 @@ int sock_dtls_session_create(sock_dtls_t *sock, const sock_udp_ep_t *ep,
     res = dtls_connect(sock->dtls_ctx, &remote->dtls_session);
     if (res < 0) {
         DEBUG("sock_dtls: error establishing a session: %d\n", res);
-        return res;
+        return -ENOMEM;
     }
     else if (res == 0) {
         DEBUG("sock_dtls: session already exist. Skip establishing session\n");
         return 0;
     }
-    DEBUG("sock_dtls: waiting for ClientHello to be sent\n");
-    mbox_get(&sock->mbox, &msg);
-    if (msg.type != DTLS_EVENT_CONNECT) {
-        DEBUG("sock_dtls: DTLS handshake was not started\n");
-        return -1;
-    }
-    DEBUG("sock_dtls: ClientHello sent, waiting for handshake\n");
 
     /* receive all handshake messages or timeout if timer expires */
     while (!mbox_try_get(&sock->mbox, &msg) ||
@@ -340,11 +333,11 @@ int sock_dtls_session_create(sock_dtls_t *sock, const sock_udp_ep_t *ep,
         }
         else {
             DEBUG("sock_dtls: error receiving handshake messages: %d\n", res);
-            /* deletes peer created in dtls_connect() before */
+            /* deletes peer created in dtls_connect() */
             dtls_peer_t *peer = dtls_get_peer(sock->dtls_ctx,
                                               &remote->dtls_session);
             dtls_reset_peer(sock->dtls_ctx, peer);
-            return res;
+            return -ETIMEDOUT;
         }
     }
     return 0;
@@ -367,9 +360,8 @@ ssize_t sock_dtls_send(sock_dtls_t *sock, sock_dtls_session_t *remote,
          * This will also create new peer for this session */
         res = dtls_connect(sock->dtls_ctx, &remote->dtls_session);
         if (res < 0) {
-            /* error when initiating handshake */
             DEBUG("sock_dtls: error initiating handshake\n");
-            return res;
+            return -ENOMEM;
         }
         else if (res > 0) {
             /* handshake initiated, wait until connected or timed out */
