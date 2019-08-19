@@ -359,20 +359,45 @@ ssize_t sock_dtls_send(sock_dtls_t *sock, sock_dtls_session_t *remote,
                        const void *data, size_t len)
 {
     assert(sock && remote && data);
-    ssize_t res = dtls_write(sock->dtls_ctx, &remote->dtls_session,
-                            (uint8_t *)data, len);
-    /* if no session exists for remote OR session is not connected
-     * dtls_write will try to (re)establish session and returns 0.
-     * Try to send data again after session is established. */
-    if (res == 0) {
-        msg_t msg;
-        while (msg.type != DTLS_EVENT_CONNECTED) {
-            mbox_get(&sock->mbox, &msg);
+    int res;
+
+    /* check if session exists, if not create session first then send */
+    if (!dtls_get_peer(sock->dtls_ctx, &remote->dtls_session)) {
+        /* no session with remote, creating new session.
+         * This will also create new peer for this session */
+        res = dtls_connect(sock->dtls_ctx, &remote->dtls_session);
+        if (res < 0) {
+            /* error when initiating handshake */
+            DEBUG("sock_dtls: error initiating handshake\n");
+            return res;
         }
-        res = dtls_write(sock->dtls_ctx, &remote->dtls_session,
-                         (uint8_t *)data, len);
+        else if (res > 0) {
+            /* handshake initiated, wait until connected or timed out */
+            xtimer_t timeout_timer;
+            timeout_timer.callback = _timeout_callback;
+            timeout_timer.arg = sock;
+            xtimer_set(&timeout_timer, DTLS_HANDSHAKE_TIMEOUT);
+
+            msg_t msg;
+            do {
+                mbox_get(&sock->mbox, &msg);
+            } while ((msg.type != DTLS_EVENT_CONNECTED) &&
+                     (msg.type != DTLS_EVENT_TIMEOUT));
+
+            if (msg.type == DTLS_EVENT_TIMEOUT) {
+                DEBUG("sock_dtls: handshake process timed out\n");
+
+                /* deletes peer created in dtls_connect() before */
+                dtls_peer_t *peer = dtls_get_peer(sock->dtls_ctx, &remote->dtls_session);
+                dtls_reset_peer(sock->dtls_ctx, peer);
+                return -EHOSTUNREACH;
+            }
+            xtimer_remove(&timeout_timer);
+        }
     }
-    return res;
+
+    return dtls_write(sock->dtls_ctx, &remote->dtls_session, (uint8_t *)data,
+                      len);
 }
 
 ssize_t sock_dtls_recv(sock_dtls_t *sock, sock_dtls_session_t *remote,
