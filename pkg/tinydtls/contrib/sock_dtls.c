@@ -340,6 +340,10 @@ int sock_dtls_session_create(sock_dtls_t *sock, sock_udp_ep_t *ep,
         }
         else {
             DEBUG("sock_dtls: error receiving handshake messages: %d\n", res);
+            /* deletes peer created in dtls_connect() before */
+            dtls_peer_t *peer = dtls_get_peer(sock->dtls_ctx,
+                                              &remote->dtls_session);
+            dtls_reset_peer(sock->dtls_ctx, peer);
             return res;
         }
     }
