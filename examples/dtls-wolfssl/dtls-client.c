@@ -144,6 +144,11 @@ int dtls_client(int argc, char **argv)
 
     if (sock_dtls_session_create(sk) < 0)
         return -1;
+
+    /* Prevents handshake from timing out because server takes longer to
+     * complete handshake when using ECC */
+    wolfSSL_dtls_set_timeout_init(sk->ssl, 2);
+
     printf("connecting to server...");
     /* attempt to connect until the connection is successful */
     do {
