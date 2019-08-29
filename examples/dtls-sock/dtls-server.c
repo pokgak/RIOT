@@ -129,10 +129,7 @@ void *dtls_server_wrapper(void *arg)
                 }
                 continue;
             }
-            printf("Received %d bytes of DTLS message: %.*s\n", (int)res,
-                   (int)res, rcv);
-
-            puts("Resending received message");
+            printf("Received %d bytes -- (echo!)\n", (int)res);
             res = sock_dtls_send(&sock, &session, rcv, (int)res);
             if (res < 0) {
                 printf("Error resending DTLS message: %d", (int)res);
