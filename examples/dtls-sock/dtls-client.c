@@ -31,15 +31,42 @@
 
 #define SOCK_DTLS_CLIENT_TAG (2)
 
-#ifdef DTLS_PSK
-static uint8_t psk_id_0[] = PSK_DEFAULT_IDENTITY;
-static uint8_t psk_key_0[] = PSK_DEFAULT_KEY;
-#endif /* DTLS_PSK */
 #ifdef DTLS_ECC
 static ecdsa_public_key_t other_pubkeys[] = {
     { .x = other_pub_key_x, .y = other_pub_key_y },
 };
-#endif /* DTLS_ECC */
+
+static const credman_credential_t credential = {
+    .type = CREDMAN_TYPE_ECDSA,
+    .tag = SOCK_DTLS_CLIENT_TAG,
+    .params = {
+        .ecdsa = {
+            .private_key = client_ecdsa_priv_key,
+            .public_key = {
+                .x = client_ecdsa_pub_key_x,
+                .y = client_ecdsa_pub_key_y,
+            },
+            .client_keys = other_pubkeys,
+            .client_keys_size = sizeof(other_pubkeys) / sizeof(other_pubkeys[0]),
+        }
+    },
+};
+
+#else /* ifdef DTLS_PSK */
+static uint8_t psk_id_0[] = PSK_DEFAULT_IDENTITY;
+static uint8_t psk_key_0[] = PSK_DEFAULT_KEY;
+
+static const credman_credential_t credential = {
+    .type = CREDMAN_TYPE_PSK,
+    .tag = SOCK_DTLS_CLIENT_TAG,
+    .params = {
+        .psk = {
+            .key = { .s = psk_key_0, .len = sizeof(psk_key_0) - 1, },
+            .id = { .s = psk_id_0, .len = sizeof(psk_id_0) - 1, },
+        }
+    },
+};
+#endif
 
 static int client_send(char *addr_str, char *data, size_t datalen)
 {
@@ -89,45 +116,11 @@ static int client_send(char *addr_str, char *data, size_t datalen)
         return -1;
     }
 
-#ifdef DTLS_PSK
-    credman_credential_t credential = {
-        .type = CREDMAN_TYPE_PSK,
-        .tag = SOCK_DTLS_CLIENT_TAG,
-        .params = {
-            .psk = {
-                .key = { .s = psk_key_0, .len = sizeof(psk_key_0) - 1, },
-                .id = { .s = psk_id_0, .len = sizeof(psk_id_0) - 1, },
-            }
-        },
-    };
     res = credman_add(&credential);
     if (res < 0 && res != CREDMAN_EXIST) {
         printf("Error cannot add credential to system: %d\n", (int)res);
         return -1;
     }
-#endif /* DTLS_PSK */
-#ifdef DTLS_ECC
-    credman_credential_t credential = {
-        .type = CREDMAN_TYPE_ECDSA,
-        .tag = SOCK_DTLS_CLIENT_TAG,
-        .params = {
-            .ecdsa = {
-                .private_key = client_ecdsa_priv_key,
-                .public_key = {
-                    .x = client_ecdsa_pub_key_x,
-                    .y = client_ecdsa_pub_key_y,
-                },
-                .client_keys = other_pubkeys,
-                .client_keys_size = sizeof(other_pubkeys) / sizeof(other_pubkeys[0]),
-            }
-        },
-    };
-    res = credman_add(&credential);
-    if (res < 0 && res != CREDMAN_EXIST) {
-        printf("Error cannot add credential to system: %d\n", (int)res);
-        return -1;
-    }
-#endif /* DTLS_ECC */
 
     if (sock_dtls_session_create(&dtls_sock, &remote, &session) < 0) {
         printf("Error creating session: %d\n", (int)res);

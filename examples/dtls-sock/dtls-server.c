@@ -39,15 +39,39 @@ char _dtls_server_stack[THREAD_STACKSIZE_MAIN +
 
 static kernel_pid_t _dtls_server_pid = KERNEL_PID_UNDEF;
 
-
-#ifdef DTLS_PSK
-static uint8_t psk_key_0[] = PSK_DEFAULT_KEY;
-#endif /* DTLS_PSK */
 #ifdef DTLS_ECC
 static ecdsa_public_key_t other_pubkeys[] = {
     { .x = other_pub_key_x, .y = other_pub_key_y },
 };
-#endif /* DTLS_ECC */
+
+static const credman_credential_t credential = {
+    .type = CREDMAN_TYPE_ECDSA,
+    .tag = SOCK_DTLS_SERVER_TAG,
+    .params = {
+        .ecdsa = {
+            .private_key = server_ecdsa_priv_key,
+            .public_key = {
+                .x = server_ecdsa_pub_key_x,
+                .y = server_ecdsa_pub_key_y,
+            },
+            .client_keys = other_pubkeys,
+            .client_keys_size = sizeof(other_pubkeys) / sizeof(other_pubkeys[0]),
+        },
+    },
+};
+#else /* #ifdef DTLS_PSK */
+static uint8_t psk_key_0[] = PSK_DEFAULT_KEY;
+
+static const credman_credential_t credential = {
+    .type = CREDMAN_TYPE_PSK,
+    .tag = SOCK_DTLS_SERVER_TAG,
+    .params = {
+        .psk = {
+            .key = { .s = psk_key_0, .len = sizeof(psk_key_0) - 1, },
+        },
+    },
+};
+#endif
 
 void *dtls_server_wrapper(void *arg)
 {
@@ -76,44 +100,11 @@ void *dtls_server_wrapper(void *arg)
         return 0;
     }
 
-#ifdef DTLS_PSK
-    credman_credential_t credential = {
-        .type = CREDMAN_TYPE_PSK,
-        .tag = SOCK_DTLS_SERVER_TAG,
-        .params = {
-            .psk = {
-                .key = { .s = psk_key_0, .len = sizeof(psk_key_0) - 1, },
-            },
-        },
-    };
     res = credman_add(&credential);
     if (res < 0) {
         printf("Error cannot add credential to system: %d\n", (int)res);
         return 0;
     }
-#endif /* DTLS_PSK */
-#ifdef DTLS_ECC
-    credman_credential_t credential = {
-        .type = CREDMAN_TYPE_ECDSA,
-        .tag = SOCK_DTLS_SERVER_TAG,
-        .params = {
-            .ecdsa = {
-                .private_key = server_ecdsa_priv_key,
-                .public_key = {
-                    .x = server_ecdsa_pub_key_x,
-                    .y = server_ecdsa_pub_key_y,
-                },
-                .client_keys = other_pubkeys,
-                .client_keys_size = sizeof(other_pubkeys) / sizeof(other_pubkeys[0]),
-            },
-        },
-    };
-    res = credman_add(&credential);
-    if (res < 0) {
-        printf("Error cannot add credential to system: %d\n", (int)res);
-        return 0;
-    }
-#endif /* DTLS_ECC */
 
     while (active) {
         msg_try_receive(&msg);
