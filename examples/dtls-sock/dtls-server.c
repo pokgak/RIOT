@@ -40,7 +40,7 @@ char _dtls_server_stack[THREAD_STACKSIZE_MAIN +
 static kernel_pid_t _dtls_server_pid = KERNEL_PID_UNDEF;
 
 #ifdef DTLS_ECC
-static ecdsa_public_key_t other_pubkeys[] = {
+static const ecdsa_public_key_t other_pubkeys[] = {
     { .x = other_pub_key_x, .y = other_pub_key_y },
 };
 
@@ -55,12 +55,12 @@ static const credman_credential_t credential = {
                 .y = server_ecdsa_pub_key_y,
             },
             .client_keys = other_pubkeys,
-            .client_keys_size = sizeof(other_pubkeys) / sizeof(other_pubkeys[0]),
+            .client_keys_size = ARRAY_SIZE(other_pubkeys),
         },
     },
 };
 #else /* #ifdef DTLS_PSK */
-static uint8_t psk_key_0[] = PSK_DEFAULT_KEY;
+static const uint8_t psk_key_0[] = PSK_DEFAULT_KEY;
 
 static const credman_credential_t credential = {
     .type = CREDMAN_TYPE_PSK,
