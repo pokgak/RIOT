@@ -40,11 +40,11 @@ ifneq (,$(filter wolfssl_tls13,$(USEMODULE)))
 endif
 
 ifneq (,$(filter wolfssl_dtls,$(USEMODULE)))
-  USEMODULE += sock_tls
+  # USEMODULE += sock_tls
 endif
 
 ifneq (,$(filter wolfssl_psk,$(USEMODULE)))
-  USEMODULE += sock_tls
+  # USEMODULE += sock_tls
 endif
 
 ifneq (,$(filter sock_tls,$(USEMODULE)))
@@ -77,6 +77,21 @@ ifneq (,$(filter wolfssl_socket,$(USEMODULE)))
   USEMODULE += wolfssl_tls
   USEMODULE += posix_sockets
   USEMODULE += posix_inet
+endif
+
+ifneq (,$(filter wolfssl_sock_dtls,$(USEMODULE)))
+  USEMODULE += wolfcrypt
+  USEMODULE += wolfcrypt_aes
+  USEMODULE += wolfcrypt_asn
+  USEMODULE += wolfcrypt_hmac
+  USEMODULE += wolfcrypt_md5
+  USEMODULE += wolfcrypt_sha
+  USEMODULE += wolfcrypt_random
+  USEMODULE += wolfssl_internal
+  USEMODULE += wolfssl_wolfio
+  USEMODULE += wolfssl_keys
+  USEMODULE += wolfssl_ssl
+  USEMODULE += wolfssl_tls
 endif
 
 ifneq (,$(filter wolfcrypt_random,$(USEMODULE)))

@@ -898,6 +898,13 @@ ifneq (,$(filter irq_handler,$(USEMODULE)))
   USEMODULE += event
 endif
 
+ifneq (,$(filter wolfssl_sock_dtls, $(USEMODULE)))
+    USEPKG += wolfssl
+    USEMODULE += wolfssl
+    USEMODULE += wolfssl_dtls
+    USEMODULE += sock_dtls
+endif
+
 ifneq (,$(filter tinydtls_sock_dtls, $(USEMODULE)))
     USEPKG += tinydtls
     USEMODULE += sock_dtls

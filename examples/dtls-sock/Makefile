@@ -27,17 +27,25 @@ USEMODULE += auto_init_gnrc_netif
 # Specify the mandatory networking modules for IPv6 and UDP
 USEMODULE += gnrc_ipv6_default
 USEMODULE += gnrc_sock_udp
-
-# Use tinydtls for sock_dtls
-USEMODULE += tinydtls_sock_dtls
-
 # Add also the shell, some shell commands
 USEMODULE += shell
 USEMODULE += shell_commands
+USEMODULE += ps
+
+# Use tinydtls for sock_dtls
+# USEMODULE += tinydtls_sock_dtls
+USEMODULE += wolfssl_sock_dtls
+USEMODULE += wolfssl_psk
 
 # UDP Port to use (20220 is default for DTLS).
 DTLS_PORT ?= 20220
 CFLAGS += -DDTLS_DEFAULT_PORT=$(DTLS_PORT)
+
+CFLAGS += -DDTLS_WOLFSSL -Wno-unused-parameter -Wno-unused-variable
+CFLAGS += -DDEBUG_WOLFSSL
+# to enable TLS_PSK_WITH_AES_128_CCM_8 for interop with tinydtls
+CFLAGS += -DHAVE_AESCCM
+CFLAGS += -DWOLFSSL_AES_128
 
 # NOTE: If not cipher suite is selected, DTLS_PSK is used by default.
 # This adds support for TLS_PSK_WITH_AES_128_CCM_8
@@ -46,16 +54,16 @@ CFLAGS += -DDTLS_PSK
 # CFLAGS += -DDTLS_ECC
 
 # Uncomment to enable debug logs
-# CFLAGS += -DDTLS_DEBUG
+CFLAGS += -DDTLS_DEBUG
 # When DTLS_DEBUG is set and using tinydtls, verbosity of debug log can be set with
 # Values: 0:EMERG (Default), 1:ALERT 2:CRIT 3:WARN 4:NOTICE 5:INFO 6:DEBUG
 # TINYDTLS_LOG=3
 
 # FIXME: This is a temporary patch
 # TinyDTLS <= 0.8.6 requires around 426 bytes in RAM.
-CFLAGS += -DTHREAD_STACKSIZE_MAIN=\(3*THREAD_STACKSIZE_DEFAULT+512\)
+CFLAGS += -DTHREAD_STACKSIZE_MAIN=\(3*THREAD_STACKSIZE_DEFAULT\)
 # TINYDTLS_EXTRA_BUFF can be used for increasing the server stack memory.
-CFLAGS += -DTINYDTLS_EXTRA_BUFF=\(512\)
+# CFLAGS += -DTINYDTLS_EXTRA_BUFF=\(512\)
 
 # Comment this out to disable code in RIOT that does safety checking
 # which is not needed in a production environment but helps in the

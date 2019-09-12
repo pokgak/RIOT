@@ -29,9 +29,14 @@ endif
 ifneq (,$(filter sock_tls,$(USEMODULE)))
   DIRS += $(RIOTBASE)/pkg/wolfssl/sock_tls
 endif
+ifneq (,$(filter wolfssl_sock_dtls,$(USEMODULE)))
+  DIRS += $(RIOTBASE)/pkg/wolfssl/contrib
+endif
 
 # wolfcrypt implements different options using pseudomodules
 PSEUDOMODULES += wolfcrypt_%
 
 # wolfssl implements different options using pseudomodules (ocsp, dtls, crl, etc.)
 PSEUDOMODULES += wolfssl_%
+# wolfssl_sock_dtls is not a pseudomodule, eventhough it is included in wolfssl_%
+REALMODULES += wolfssl_sock_dtls

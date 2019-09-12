@@ -583,6 +583,7 @@ void sock_dtls_session_destroy(sock_dtls_t *sock, sock_dtls_session_t *remote);
  * @note Function may block if data is not available and @p timeout != 0
  *
  * @return The number of bytes received on success
+ * @return  0, if no received data is available, but everything is in order.
  * @return  -EADDRNOTAVAIL, if the local endpoint of @p sock is not set.
  * @return  -EAGAIN, if @p timeout is `0` and no data is available.
  * @return  -EINVAL, if @p remote is invalid or @p sock is not properly

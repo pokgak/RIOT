@@ -464,14 +464,24 @@ static void _ep_to_session(const sock_udp_ep_t *ep, session_t *session)
     session->port = ep->port;
     session->size = sizeof(ipv6_addr_t) +       /* addr */
                     sizeof(unsigned short);     /* port */
-    session->ifindex = ep->netif;
+    /* FIXME: tinydtls uses hash to find sessions. This causes problem
+     * because client don't know the remote netif when sending,
+     * but the response contains the correct netif so the session
+     * matching fails. */
+    //ep->netif = session->ifindex;
+    session->ifindex = SOCK_ADDR_ANY_NETIF;
     memcpy(&session->addr, &ep->addr.ipv6, sizeof(ipv6_addr_t));
 }
 
 static void _session_to_ep(const session_t *session, sock_udp_ep_t *ep)
 {
     ep->port = session->port;
-    ep->netif = session->ifindex;
+    /* FIXME: tinydtls uses hash to find sessions. This causes problem
+     * because client don't know the remote netif when sending,
+     * but the response contains the correct netif so the session
+     * matching fails. */
+    //ep->netif = session->ifindex;
+    ep->netif = SOCK_ADDR_ANY_NETIF;
     memcpy(&ep->addr.ipv6, &session->addr, sizeof(ipv6_addr_t));
 }
 

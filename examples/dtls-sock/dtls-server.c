@@ -67,7 +67,7 @@ static const credman_credential_t credential = {
     .tag = SOCK_DTLS_SERVER_TAG,
     .params = {
         .psk = {
-            .key = { .s = psk_key_0, .len = sizeof(psk_key_0) - 1, },
+            .key = { .s = (void*)psk_key_0, .len = sizeof(psk_key_0) - 1, },
         },
     },
 };
@@ -81,12 +81,12 @@ void *dtls_server_wrapper(void *arg)
     bool active = true;
     msg_t _reader_queue[READER_QUEUE_SIZE];
     msg_t msg;
-    uint8_t rcv[512];
+    uint8_t rcv[256];
 
     /* Prepare (thread) messages reception */
     msg_init_queue(_reader_queue, READER_QUEUE_SIZE);
 
-    sock_dtls_session_t session;
+    sock_dtls_session_t session = {0};
     sock_dtls_t sock;
     sock_udp_t udp_sock;
     sock_udp_ep_t local = SOCK_IPV6_EP_ANY;
@@ -112,27 +112,31 @@ void *dtls_server_wrapper(void *arg)
             active = false;
         }
         else {
+            printf("******** Listening for new packet ********\n");
+            memset(rcv, 0, sizeof(rcv));
             res = sock_dtls_recv(&sock, &session, rcv, sizeof(rcv),
-                                 1000000);
-            if (res < 0) {
-                if (res != -ETIMEDOUT) {
-                    printf("Error receiving UDP over DTLS %d", (int)res);
+                                 SOCK_NO_TIMEOUT);
+            if (res <= 0) {
+                if (res != -ETIMEDOUT && res != 0) {
+                    printf("Error receiving UDP over DTLS %d\n", (int)res);
                 }
+                sock_dtls_session_destroy(&sock, &session);
+                memset(&session, 0, sizeof(sock_dtls_session_t));
                 continue;
             }
             printf("Received %d bytes -- (echo!)\n", (int)res);
             res = sock_dtls_send(&sock, &session, rcv, (int)res);
             if (res < 0) {
-                printf("Error resending DTLS message: %d", (int)res);
+                printf("Error resending DTLS message: %d\n", (int)res);
             }
         }
     }
 
+    puts("Terminating");
     sock_dtls_session_destroy(&sock, &session);
     sock_dtls_close(&sock);
     sock_udp_close(&udp_sock);
-    puts("Terminating");
-    msg_reply(&msg, &msg);              /* Basic answer to the main thread */
+    // msg_reply(&msg, &msg);              /* Basic answer to the main thread */
     return 0;
 }
 
