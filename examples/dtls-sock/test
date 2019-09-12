@@ -1,0 +1,151 @@
+Launching build container using image "riot/riotbuild:latest".
+mkdir -p /home/pokgak/git/RIOT-OS/RIOT/build
+docker run --rm -t -u "$(id -u)" \
+    -v '/usr/share/zoneinfo/Europe/Helsinki:/etc/localtime:ro' -v '/home/pokgak/git/RIOT-OS/RIOT:/data/riotbuild/riotbase' -e 'RIOTBASE=/data/riotbuild/riotbase' -e 'CCACHE_BASEDIR=/data/riotbuild/riotbase' -e 'BUILD_DIR=/data/riotbuild/riotbase/build' -e 'RIOTPROJECT=/data/riotbuild/riotbase' -e 'RIOTCPU=/data/riotbuild/riotbase/cpu' -e 'RIOTBOARD=/data/riotbuild/riotbase/boards' -e 'RIOTMAKE=/data/riotbuild/riotbase/makefiles'     \
+    -e 'QUIET=0' \
+    -w '/data/riotbuild/riotbase/examples/dtls-sock/' \
+    'riot/riotbuild:latest' make   
+[1;32mBuilding application "dtls_sock" for "native" with MCU "native".[0m
+
+'/data/riotbuild/riotbase/dist/tools/genconfigheader/genconfigheader.sh' -DDTLS_DEFAULT_PORT=20220 -DDTLS_PSK -DTHREAD_STACKSIZE_MAIN=\(3*THREAD_STACKSIZE_DEFAULT+512\) -DTINYDTLS_EXTRA_BUFF=\(512\) -DDEVELHELP -Werror -Wall -Wextra -pedantic -std=gnu99 -m32 -fstack-protector-all -ffunction-sections -fdata-sections -DDEBUG_ASSERT_VERBOSE -DRIOT_APPLICATION=\"dtls_sock\" -DBOARD_NATIVE=\"native\" -DRIOT_BOARD=BOARD_NATIVE -DCPU_NATIVE=\"native\" -DRIOT_CPU=CPU_NATIVE -DMCU_NATIVE=\"native\" -DRIOT_MCU=MCU_NATIVE -fno-common -Wall -Wextra -Wmissing-include-dirs -fno-delete-null-pointer-checks -fdiagnostics-color -Wstrict-prototypes -Wold-style-definition -gz -Wformat=2 -Wformat-overflow -Wformat-truncation -DSOCK_HAS_IPV6 -DWOLFSSL_USER_SETTINGS=1 -DWOLFSSL_RIOT_OS=1 -DMODULE_AUTO_INIT -DMODULE_AUTO_INIT_GNRC_NETIF -DMODULE_BOARD -DMODULE_CORE -DMODULE_CORE_MBOX -DMODULE_CORE_MSG -DMODULE_CPU -DMODULE_CREDMAN -DMODULE_DIV -DMODULE_EVTIMER -DMODULE_FMT -DMODULE_GNRC -DMODULE_GNRC_ICMPV6 -DMODULE_GNRC_IPV6 -DMODULE_GNRC_IPV6_DEFAULT -DMODULE_GNRC_IPV6_HDR -DMODULE_GNRC_IPV6_NIB -DMODULE_GNRC_NDP -DMODULE_GNRC_NETAPI -DMODULE_GNRC_NETAPI_MBOX -DMODULE_GNRC_NETDEV_DEFAULT -DMODULE_GNRC_NETIF -DMODULE_GNRC_NETIF_ETHERNET -DMODULE_GNRC_NETIF_HDR -DMODULE_GNRC_NETREG -DMODULE_GNRC_PKT -DMODULE_GNRC_PKTBUF -DMODULE_GNRC_PKTBUF_STATIC -DMODULE_GNRC_SOCK -DMODULE_GNRC_SOCK_UDP -DMODULE_GNRC_UDP -DMODULE_ICMPV6 -DMODULE_INET_CSUM -DMODULE_IOLIST -DMODULE_IPV6_ADDR -DMODULE_IPV6_HDR -DMODULE_L2UTIL -DMODULE_LUID -DMODULE_NATIVE_DRIVERS -DMODULE_NETDEV_DEFAULT -DMODULE_NETDEV_ETH -DMODULE_NETDEV_TAP -DMODULE_NETIF -DMODULE_PERIPH -DMODULE_PERIPH_COMMON -DMODULE_PERIPH_CPUID -DMODULE_PERIPH_GPIO -DMODULE_PERIPH_HWRNG -DMODULE_PERIPH_PM -DMODULE_PERIPH_TIMER -DMODULE_PERIPH_UART -DMODULE_PRNG -DMODULE_PRNG_TINYMT32 -DMODULE_RANDOM -DMODULE_SHELL -DMODULE_SHELL_COMMANDS -DMODULE_SOCK -DMODULE_SOCK_DTLS -DMODULE_SOCK_UDP -DMODULE_STDIN -DMODULE_SYS -DMODULE_TINYMT32 -DMODULE_UDP -DMODULE_WOLFCRYPT -DMODULE_WOLFSSL -DMODULE_WOLFSSL_SOCK_DTLS -DMODULE_XTIMER -DRIOT_VERSION=\"2019.10-devel-800-g116df3-wolfssl_sock_dtls\" \
+	| '/data/riotbuild/riotbase/dist/tools/lazysponge/lazysponge.py' --verbose '/data/riotbuild/riotbase/examples/dtls-sock/bin/native/riotbuild/riotbuild.h'
+Keeping old /data/riotbuild/riotbase/examples/dtls-sock/bin/native/riotbuild/riotbuild.h (7ea5e91a8a9000dbe6cb41444afffa41)
+make[1]: Entering directory '/data/riotbuild/riotbase/pkg/wolfssl'
+if [ eaeaaf12c11dd52ab0cd6833252ed559656e9826 != eaeaaf12c11dd52ab0cd6833252ed559656e9826 ] ; then \
+	git -C /data/riotbuild/riotbase/examples/dtls-sock/bin/pkg/native/wolfssl clean -xdff ; \
+	git -C /data/riotbuild/riotbase/examples/dtls-sock/bin/pkg/native/wolfssl fetch "https://github.com/wolfssl/wolfssl.git" "eaeaaf12c11dd52ab0cd6833252ed559656e9826" ; \
+	git -C /data/riotbuild/riotbase/examples/dtls-sock/bin/pkg/native/wolfssl checkout -f eaeaaf12c11dd52ab0cd6833252ed559656e9826 ; \
+	touch /data/riotbuild/riotbase/examples/dtls-sock/bin/pkg/native/wolfssl/.git-downloaded ; \
+fi
+cp Makefile.wolfssl /data/riotbuild/riotbase/examples/dtls-sock/bin/pkg/native/wolfssl/src/Makefile
+cp Makefile.wolfcrypt /data/riotbuild/riotbase/examples/dtls-sock/bin/pkg/native/wolfssl/wolfcrypt/src/Makefile
+touch /data/riotbuild/riotbase/examples/dtls-sock/bin/pkg/native/wolfssl/wolfssl.a
+cp Makefile.wolfcrypt-test /data/riotbuild/riotbase/examples/dtls-sock/bin/pkg/native/wolfssl/wolfcrypt/test/Makefile
+cp Makefile.wolfcrypt-benchmark /data/riotbuild/riotbase/examples/dtls-sock/bin/pkg/native/wolfssl/wolfcrypt/benchmark/Makefile
+make[1]: Leaving directory '/data/riotbuild/riotbase/pkg/wolfssl'
+"make" -C /data/riotbuild/riotbase/pkg/wolfssl
+make[1]: Entering directory '/data/riotbuild/riotbase/pkg/wolfssl'
+make[1]: Nothing to be done for 'all'.
+make[1]: Leaving directory '/data/riotbuild/riotbase/pkg/wolfssl'
+DIRS="/data/riotbuild/riotbase/examples/dtls-sock/bin/pkg/native/wolfssl/wolfcrypt/src /data/riotbuild/riotbase/examples/dtls-sock/bin/pkg/native/wolfssl/src /data/riotbuild/riotbase/pkg/wolfssl/contrib  " "make" -C /data/riotbuild/riotbase/examples/dtls-sock -f /data/riotbuild/riotbase/makefiles/application.inc.mk
+make[1]: Entering directory '/data/riotbuild/riotbase/examples/dtls-sock'
+"make" -C /data/riotbuild/riotbase/boards/native
+make[2]: Entering directory '/data/riotbuild/riotbase/boards/native'
+"make" -C /data/riotbuild/riotbase/boards/native/drivers
+make[2]: Leaving directory '/data/riotbuild/riotbase/boards/native'
+"make" -C /data/riotbuild/riotbase/core
+make[2]: Entering directory '/data/riotbuild/riotbase/core'
+make[2]: Leaving directory '/data/riotbuild/riotbase/core'
+"make" -C /data/riotbuild/riotbase/cpu/native
+make[2]: Entering directory '/data/riotbuild/riotbase/cpu/native'
+"make" -C /data/riotbuild/riotbase/cpu/native/netdev_tap
+make[3]: Entering directory '/data/riotbuild/riotbase/cpu/native/netdev_tap'
+make[3]: Leaving directory '/data/riotbuild/riotbase/cpu/native/netdev_tap'
+"make" -C /data/riotbuild/riotbase/cpu/native/periph
+"make" -C /data/riotbuild/riotbase/cpu/native/vfs
+make[2]: Leaving directory '/data/riotbuild/riotbase/cpu/native'
+"make" -C /data/riotbuild/riotbase/drivers
+make[2]: Entering directory '/data/riotbuild/riotbase/drivers'
+"make" -C /data/riotbuild/riotbase/drivers/netdev_eth
+make[3]: Entering directory '/data/riotbuild/riotbase/drivers/netdev_eth'
+make[3]: Leaving directory '/data/riotbuild/riotbase/drivers/netdev_eth'
+"make" -C /data/riotbuild/riotbase/drivers/periph_common
+make[3]: Entering directory '/data/riotbuild/riotbase/drivers/periph_common'
+make[3]: Leaving directory '/data/riotbuild/riotbase/drivers/periph_common'
+make[2]: Leaving directory '/data/riotbuild/riotbase/drivers'
+"make" -C /data/riotbuild/riotbase/examples/dtls-sock/bin/pkg/native/wolfssl/src
+"make" -C /data/riotbuild/riotbase/examples/dtls-sock/bin/pkg/native/wolfssl/wolfcrypt/src
+"make" -C /data/riotbuild/riotbase/pkg/wolfssl/contrib
+"make" -C /data/riotbuild/riotbase/sys
+make[2]: Entering directory '/data/riotbuild/riotbase/sys'
+"make" -C /data/riotbuild/riotbase/sys/auto_init
+make[3]: Entering directory '/data/riotbuild/riotbase/sys/auto_init'
+"make" -C /data/riotbuild/riotbase/sys/auto_init/netif
+make[3]: Leaving directory '/data/riotbuild/riotbase/sys/auto_init'
+"make" -C /data/riotbuild/riotbase/sys/div
+make[3]: Entering directory '/data/riotbuild/riotbase/sys/div'
+make[3]: Leaving directory '/data/riotbuild/riotbase/sys/div'
+"make" -C /data/riotbuild/riotbase/sys/evtimer
+make[3]: Entering directory '/data/riotbuild/riotbase/sys/evtimer'
+make[3]: Leaving directory '/data/riotbuild/riotbase/sys/evtimer'
+"make" -C /data/riotbuild/riotbase/sys/fmt
+make[3]: Entering directory '/data/riotbuild/riotbase/sys/fmt'
+make[3]: Leaving directory '/data/riotbuild/riotbase/sys/fmt'
+"make" -C /data/riotbuild/riotbase/sys/iolist
+make[3]: Entering directory '/data/riotbuild/riotbase/sys/iolist'
+make[3]: Leaving directory '/data/riotbuild/riotbase/sys/iolist'
+"make" -C /data/riotbuild/riotbase/sys/luid
+make[3]: Entering directory '/data/riotbuild/riotbase/sys/luid'
+make[3]: Leaving directory '/data/riotbuild/riotbase/sys/luid'
+"make" -C /data/riotbuild/riotbase/sys/net/credman
+"make" -C /data/riotbuild/riotbase/sys/net/crosslayer/inet_csum
+make[3]: Entering directory '/data/riotbuild/riotbase/sys/net/crosslayer/inet_csum'
+make[3]: Leaving directory '/data/riotbuild/riotbase/sys/net/crosslayer/inet_csum'
+"make" -C /data/riotbuild/riotbase/sys/net/gnrc
+make[3]: Entering directory '/data/riotbuild/riotbase/sys/net/gnrc'
+"make" -C /data/riotbuild/riotbase/sys/net/gnrc/netapi
+"make" -C /data/riotbuild/riotbase/sys/net/gnrc/netif
+make[4]: Entering directory '/data/riotbuild/riotbase/sys/net/gnrc/netif'
+"make" -C /data/riotbuild/riotbase/sys/net/gnrc/netif/ethernet
+"make" -C /data/riotbuild/riotbase/sys/net/gnrc/netif/hdr
+make[4]: Leaving directory '/data/riotbuild/riotbase/sys/net/gnrc/netif'
+"make" -C /data/riotbuild/riotbase/sys/net/gnrc/netreg
+"make" -C /data/riotbuild/riotbase/sys/net/gnrc/network_layer/icmpv6
+"make" -C /data/riotbuild/riotbase/sys/net/gnrc/network_layer/ipv6
+"make" -C /data/riotbuild/riotbase/sys/net/gnrc/network_layer/ipv6/hdr
+"make" -C /data/riotbuild/riotbase/sys/net/gnrc/network_layer/ipv6/nib
+"make" -C /data/riotbuild/riotbase/sys/net/gnrc/network_layer/ndp
+"make" -C /data/riotbuild/riotbase/sys/net/gnrc/pkt
+"make" -C /data/riotbuild/riotbase/sys/net/gnrc/pktbuf
+"make" -C /data/riotbuild/riotbase/sys/net/gnrc/pktbuf_static
+"make" -C /data/riotbuild/riotbase/sys/net/gnrc/sock
+"make" -C /data/riotbuild/riotbase/sys/net/gnrc/sock/udp
+"make" -C /data/riotbuild/riotbase/sys/net/gnrc/transport_layer/udp
+make[3]: Leaving directory '/data/riotbuild/riotbase/sys/net/gnrc'
+"make" -C /data/riotbuild/riotbase/sys/net/link_layer/l2util
+make[3]: Entering directory '/data/riotbuild/riotbase/sys/net/link_layer/l2util'
+make[3]: Leaving directory '/data/riotbuild/riotbase/sys/net/link_layer/l2util'
+"make" -C /data/riotbuild/riotbase/sys/net/network_layer/icmpv6
+make[3]: Entering directory '/data/riotbuild/riotbase/sys/net/network_layer/icmpv6'
+make[3]: Leaving directory '/data/riotbuild/riotbase/sys/net/network_layer/icmpv6'
+"make" -C /data/riotbuild/riotbase/sys/net/network_layer/ipv6/addr
+"make" -C /data/riotbuild/riotbase/sys/net/network_layer/ipv6/hdr
+"make" -C /data/riotbuild/riotbase/sys/net/transport_layer/udp
+make[3]: Entering directory '/data/riotbuild/riotbase/sys/net/transport_layer/udp'
+make[3]: Leaving directory '/data/riotbuild/riotbase/sys/net/transport_layer/udp'
+"make" -C /data/riotbuild/riotbase/sys/random
+make[3]: Entering directory '/data/riotbuild/riotbase/sys/random'
+"make" -C /data/riotbuild/riotbase/sys/random/tinymt32
+make[4]: Entering directory '/data/riotbuild/riotbase/sys/random/tinymt32'
+make[4]: Leaving directory '/data/riotbuild/riotbase/sys/random/tinymt32'
+make[3]: Leaving directory '/data/riotbuild/riotbase/sys/random'
+"make" -C /data/riotbuild/riotbase/sys/shell
+make[3]: Entering directory '/data/riotbuild/riotbase/sys/shell'
+make[3]: Leaving directory '/data/riotbuild/riotbase/sys/shell'
+"make" -C /data/riotbuild/riotbase/sys/shell/commands
+"make" -C /data/riotbuild/riotbase/sys/xtimer
+make[3]: Entering directory '/data/riotbuild/riotbase/sys/xtimer'
+make[3]: Leaving directory '/data/riotbuild/riotbase/sys/xtimer'
+make[2]: Leaving directory '/data/riotbuild/riotbase/sys'
+make[1]: Leaving directory '/data/riotbuild/riotbase/examples/dtls-sock'
+gcc /data/riotbuild/riotbase/examples/dtls-sock/bin/native/cpu/startup.o -Wl,--start-group /data/riotbuild/riotbase/examples/dtls-sock/bin/native/application_dtls_sock.a  /data/riotbuild/riotbase/examples/dtls-sock/bin/native/auto_init.a /data/riotbuild/riotbase/examples/dtls-sock/bin/native/auto_init_gnrc_netif.a /data/riotbuild/riotbase/examples/dtls-sock/bin/native/board.a /data/riotbuild/riotbase/examples/dtls-sock/bin/native/core.a /data/riotbuild/riotbase/examples/dtls-sock/bin/native/cpu.a /data/riotbuild/riotbase/examples/dtls-sock/bin/native/credman.a /data/riotbuild/riotbase/examples/dtls-sock/bin/native/div.a /data/riotbuild/riotbase/examples/dtls-sock/bin/native/evtimer.a /data/riotbuild/riotbase/examples/dtls-sock/bin/native/fmt.a /data/riotbuild/riotbase/examples/dtls-sock/bin/native/gnrc.a /data/riotbuild/riotbase/examples/dtls-sock/bin/native/gnrc_icmpv6.a /data/riotbuild/riotbase/examples/dtls-sock/bin/native/gnrc_ipv6.a /data/riotbuild/riotbase/examples/dtls-sock/bin/native/gnrc_ipv6_hdr.a /data/riotbuild/riotbase/examples/dtls-sock/bin/native/gnrc_ipv6_nib.a /data/riotbuild/riotbase/examples/dtls-sock/bin/native/gnrc_ndp.a /data/riotbuild/riotbase/examples/dtls-sock/bin/native/gnrc_netapi.a /data/riotbuild/riotbase/examples/dtls-sock/bin/native/gnrc_netif.a /data/riotbuild/riotbase/examples/dtls-sock/bin/native/gnrc_netif_ethernet.a /data/riotbuild/riotbase/examples/dtls-sock/bin/native/gnrc_netif_hdr.a /data/riotbuild/riotbase/examples/dtls-sock/bin/native/gnrc_netreg.a /data/riotbuild/riotbase/examples/dtls-sock/bin/native/gnrc_pkt.a /data/riotbuild/riotbase/examples/dtls-sock/bin/native/gnrc_pktbuf.a /data/riotbuild/riotbase/examples/dtls-sock/bin/native/gnrc_pktbuf_static.a /data/riotbuild/riotbase/examples/dtls-sock/bin/native/gnrc_sock.a /data/riotbuild/riotbase/examples/dtls-sock/bin/native/gnrc_sock_udp.a /data/riotbuild/riotbase/examples/dtls-sock/bin/native/gnrc_udp.a /data/riotbuild/riotbase/examples/dtls-sock/bin/native/icmpv6.a /data/riotbuild/riotbase/examples/dtls-sock/bin/native/inet_csum.a /data/riotbuild/riotbase/examples/dtls-sock/bin/native/iolist.a /data/riotbuild/riotbase/examples/dtls-sock/bin/native/ipv6_addr.a /data/riotbuild/riotbase/examples/dtls-sock/bin/native/ipv6_hdr.a /data/riotbuild/riotbase/examples/dtls-sock/bin/native/l2util.a /data/riotbuild/riotbase/examples/dtls-sock/bin/native/luid.a /data/riotbuild/riotbase/examples/dtls-sock/bin/native/native-drivers.a /data/riotbuild/riotbase/examples/dtls-sock/bin/native/netdev_eth.a /data/riotbuild/riotbase/examples/dtls-sock/bin/native/netdev_tap.a /data/riotbuild/riotbase/examples/dtls-sock/bin/native/periph.a /data/riotbuild/riotbase/examples/dtls-sock/bin/native/random.a /data/riotbuild/riotbase/examples/dtls-sock/bin/native/shell.a /data/riotbuild/riotbase/examples/dtls-sock/bin/native/shell_commands.a /data/riotbuild/riotbase/examples/dtls-sock/bin/native/sys.a /data/riotbuild/riotbase/examples/dtls-sock/bin/native/tinymt32.a /data/riotbuild/riotbase/examples/dtls-sock/bin/native/udp.a /data/riotbuild/riotbase/examples/dtls-sock/bin/native/wolfcrypt.a /data/riotbuild/riotbase/examples/dtls-sock/bin/native/wolfssl.a /data/riotbuild/riotbase/examples/dtls-sock/bin/native/xtimer.a /data/riotbuild/riotbase/examples/dtls-sock/bin/native/periph_common.a -lm -Wl,--end-group -m32 -ldl -Wl,--gc-sections -ffunction-sections -Wl,-Map=/data/riotbuild/riotbase/examples/dtls-sock/bin/native/dtls_sock.map -o /data/riotbuild/riotbase/examples/dtls-sock/bin/native/dtls_sock.elf
+/data/riotbuild/riotbase/examples/dtls-sock/bin/native/application_dtls_sock.a(dtls-server.o): In function `dtls_server_wrapper':
+dtls-server.c:(.text.dtls_server_wrapper+0xab): undefined reference to `sock_dtls_create'
+dtls-server.c:(.text.dtls_server_wrapper+0x172): undefined reference to `sock_dtls_recv'
+dtls-server.c:(.text.dtls_server_wrapper+0x1e0): undefined reference to `sock_dtls_send'
+dtls-server.c:(.text.dtls_server_wrapper+0x22d): undefined reference to `sock_dtls_session_destroy'
+dtls-server.c:(.text.dtls_server_wrapper+0x23f): undefined reference to `sock_dtls_close'
+/data/riotbuild/riotbase/examples/dtls-sock/bin/native/application_dtls_sock.a(dtls-client.o): In function `client_send':
+dtls-client.c:(.text.client_send+0x198): undefined reference to `sock_dtls_create'
+dtls-client.c:(.text.client_send+0x236): undefined reference to `sock_dtls_session_create'
+dtls-client.c:(.text.client_send+0x264): undefined reference to `sock_dtls_close'
+dtls-client.c:(.text.client_send+0x2a2): undefined reference to `sock_dtls_send'
+dtls-client.c:(.text.client_send+0x2f3): undefined reference to `sock_dtls_recv'
+dtls-client.c:(.text.client_send+0x348): undefined reference to `sock_dtls_session_destroy'
+dtls-client.c:(.text.client_send+0x35a): undefined reference to `sock_dtls_close'
+/data/riotbuild/riotbase/examples/dtls-sock/bin/native/auto_init.a(auto_init.o): In function `auto_init':
+auto_init.c:(.text.auto_init+0x3c): undefined reference to `sock_dtls_init'
+collect2: error: ld returned 1 exit status
+/data/riotbuild/riotbase/Makefile.include:479: recipe for target '/data/riotbuild/riotbase/examples/dtls-sock/bin/native/dtls_sock.elf' failed
+make: *** [/data/riotbuild/riotbase/examples/dtls-sock/bin/native/dtls_sock.elf] Error 1
+/home/pokgak/git/RIOT-OS/RIOT/makefiles/docker.inc.mk:272: recipe for target '..in-docker-container' failed

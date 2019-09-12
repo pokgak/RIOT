@@ -67,7 +67,7 @@ static const credman_credential_t credential = {
     .tag = SOCK_DTLS_SERVER_TAG,
     .params = {
         .psk = {
-            .key = { .s = psk_key_0, .len = sizeof(psk_key_0) - 1, },
+            .key = { .s = (void*)psk_key_0, .len = sizeof(psk_key_0) - 1, },
         },
     },
 };
