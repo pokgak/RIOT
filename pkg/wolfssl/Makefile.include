@@ -29,7 +29,6 @@ endif
 ifneq (,$(filter sock_tls,$(USEMODULE)))
   DIRS += $(RIOTBASE)/pkg/wolfssl/sock_tls
 endif
-
 ifneq (,$(filter wolfssl_sock_dtls,$(USEMODULE)))
   DIRS += $(RIOTBASE)/pkg/wolfssl/contrib
 endif
@@ -38,5 +37,6 @@ endif
 PSEUDOMODULES += wolfcrypt_%
 
 # wolfssl implements different options using pseudomodules (ocsp, dtls, crl, etc.)
-# FIXME: with wildcard (%), we get `undefined reference to <sock_dtls_functions>` when using with sock_dtls
-#PSEUDOMODULES += wolfssl_%
+PSEUDOMODULES += wolfssl_%
+# wolfssl_sock_dtls is not a pseudomodule, eventhough it is included in wolfssl_%
+REALMODULES += wolfssl_sock_dtls

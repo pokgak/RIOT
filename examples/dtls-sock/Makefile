@@ -31,7 +31,7 @@ USEMODULE += gnrc_sock_udp
 # Use tinydtls for sock_dtls
 # USEMODULE += tinydtls_sock_dtls
 USEMODULE += wolfssl_sock_dtls
-# USEMODULE += wolfssl_psk
+USEMODULE += wolfssl_psk
 
 # Add also the shell, some shell commands
 USEMODULE += shell

@@ -20,6 +20,7 @@
 #define SOCK_DTLS_TYPES_H
 
 #include <wolfssl/ssl.h>
+#include <wolfssl/internal.h>
 #include <wolfssl/error-ssl.h>
 
 #include "net/sock/udp.h"
@@ -37,14 +38,15 @@ extern "C" {
  * @brief Information about DTLS sock
  */
 struct sock_dtls {
-    int test;
+    // struct gnrc_wolfssl_ctx wolfssl;
+    struct gnrc_wolfssl_ctx wolfssl;
 };
 
 /**
  * @brief Information about remote client connected to the server
  */
 struct sock_dtls_session {
-    int test;
+    sock_udp_ep_t ep;
 };
 
 #ifdef __cplusplus
