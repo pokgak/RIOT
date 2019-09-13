@@ -75,7 +75,7 @@ static int client_send(char *addr_str, char *data, size_t datalen)
 
     sock_udp_t udp_sock;
     sock_dtls_t dtls_sock;
-    sock_dtls_session_t session;
+    sock_dtls_session_t session = {0};
     sock_udp_ep_t remote = SOCK_IPV6_EP_ANY;
     sock_udp_ep_t local = SOCK_IPV6_EP_ANY;
     local.port = 12345;
@@ -103,7 +103,7 @@ static int client_send(char *addr_str, char *data, size_t datalen)
         return -1;
     }
 
-    int ret = sock_udp_create(&udp_sock, &local, &remote, 0);
+    int ret = sock_udp_create(&udp_sock, &local, NULL, 0);
     if (ret < 0) {
         printf("Error creating UDP sock %d\n", ret);
         return -1;

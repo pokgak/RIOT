@@ -86,7 +86,7 @@ void *dtls_server_wrapper(void *arg)
     /* Prepare (thread) messages reception */
     msg_init_queue(_reader_queue, READER_QUEUE_SIZE);
 
-    sock_dtls_session_t session;
+    sock_dtls_session_t session = {0};
     sock_dtls_t sock;
     sock_udp_t udp_sock;
     sock_udp_ep_t local = SOCK_IPV6_EP_ANY;
@@ -114,12 +114,12 @@ void *dtls_server_wrapper(void *arg)
         else {
             res = sock_dtls_recv(&sock, &session, rcv, sizeof(rcv),
                                  SOCK_NO_TIMEOUT);
-            if (res <= 0) {
+            if (res < 0) {
                 if (res != -ETIMEDOUT) {
                     printf("Error receiving UDP over DTLS %d\n", (int)res);
                 }
-                // continue;
-                break;
+                continue;
+                // break;
             }
             printf("Received %d bytes -- (echo!)\n", (int)res);
             res = sock_dtls_send(&sock, &session, rcv, (int)res);
@@ -129,10 +129,10 @@ void *dtls_server_wrapper(void *arg)
         }
     }
 
+    puts("Terminating");
     sock_dtls_session_destroy(&sock, &session);
     sock_dtls_close(&sock);
     sock_udp_close(&udp_sock);
-    puts("Terminating");
     // msg_reply(&msg, &msg);              /* Basic answer to the main thread */
     return 0;
 }
