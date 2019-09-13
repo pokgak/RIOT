@@ -82,10 +82,13 @@ static int _recv(WOLFSSL *ssl, char *buf, int sz, void *_ctx)
     // if (wolfSSL_get_using_nonblock(ssl)) {
     //     ctx->timeout = 0;
     // }
-    ret = sock_udp_recv(ctx->udp_sock, buf, sz, ctx->timeout, &ctx->remote->ep);
-    if (ret == -ETIMEDOUT) {
-        return WOLFSSL_CBIO_ERR_WANT_READ;
+    ret = sock_udp_recv(ctx->udp_sock, buf, sz, SOCK_NO_TIMEOUT, &ctx->remote->ep);
+    if (ret < 0) {
+        printf("sock_dtls: recv failed %d\n", ret);
     }
+    // if (ret == -ETIMEDOUT) {
+    //     return WOLFSSL_CBIO_ERR_WANT_READ;
+    // }
     return ret;
 }
 
@@ -178,7 +181,7 @@ int sock_dtls_session_create(sock_dtls_t *sock, const sock_udp_ep_t *ep,
         printf("sock_dtls: failed to connect\n");
         char buffer[80];
         ret = wolfSSL_get_error(sock->remote->ssl, ret);
-        printf(“error = %d, %s\n”, err, wolfSSL_ERR_error_string(ret, buffer));
+        printf("error = %d, %s\n", ret, wolfSSL_ERR_error_string(ret, buffer));
         return -1;
     }
 
