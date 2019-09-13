@@ -5,7 +5,8 @@
 
 void sock_dtls_init(void)
 {
-    /* nothing to do */
+    wolfSSL_Init();
+    wolfSSL_Debugging_ON();
 }
 
 int sock_dtls_create(sock_dtls_t *sock, sock_udp_t *udp_sock,
@@ -17,19 +18,24 @@ int sock_dtls_create(sock_dtls_t *sock, sock_udp_t *udp_sock,
     (void)version;
     (void)role;
 
-    if (!sock || !udp_sock) {
-        return -EINVAL;
-    }
-
     XMEMSET(sock, 0, sizeof(sock_dtls_t));
 
     // FIXME: use version and role instead of hardcode
-    sock->wolfssl.ctx = wolfSSL_CTX_new(wolfDTLSv1_2_client_method());
+    void *method = NULL;
+    switch (role) {
+        case SOCK_DTLS_CLIENT: method = wolfDTLSv1_2_client_method(); break;
+        case SOCK_DTLS_SERVER: method = wolfDTLSv1_2_server_method(); break;
+        default:
+            DEBUG("sock_dtls: unknown method\n");
+            return -1;
+    }
+    sock->wolfssl.ctx = wolfSSL_CTX_new(method);
     if (!sock->wolfssl.ctx) {
+        DEBUG("sock_dtls: failed to create new ctx\n");
         return -ENOMEM;
     }
 
-    memcpy(&sock->wolfssl.conn.udp, udp_sock, sizeof(*udp_sock));
+    memcpy(&sock->wolfssl.conn.udp, udp_sock, sizeof(sock_udp_t));
     return 0;
 }
 
@@ -40,27 +46,46 @@ int sock_dtls_session_create(sock_dtls_t *sock, const sock_udp_ep_t *ep,
     (void)ep;
     (void)remote;
 
+    int ret;
+
     if (sock->wolfssl.ctx) {
         return -EINVAL;
     }
+
+    XMEMCPY(&sock->wolfssl.peer_addr, remote, sizeof(sock_udp_ep_t));
     sock->wolfssl.ssl = wolfSSL_new(sock->wolfssl.ctx);
     if (sock->wolfssl.ssl == NULL) {
         DEBUG("Error allocatin ssl session\n");
         return -ENOMEM;
     }
-    else {
-        wolfSSL_SetIOReadCtx(sock->wolfssl.ssl, &sock->wolfssl);
-        wolfSSL_SetIOWriteCtx(sock->wolfssl.ssl, &sock->wolfssl);
-        sock->wolfssl.ssl->gnrcCtx = &sock->wolfssl;
-        return 0;
+    wolfSSL_SetIOReadCtx(sock->wolfssl.ssl, &sock->wolfssl);
+    wolfSSL_SetIOWriteCtx(sock->wolfssl.ssl, &sock->wolfssl);
+    sock->wolfssl.ssl->gnrcCtx = &sock->wolfssl;
+    if (wolfSSL_get_using_nonblock(sock->wolfssl.ssl) != 0) {
+        DEBUG("sock_dtls: set to use blocking IO\n");
+        wolfSSL_set_using_nonblock(sock->wolfssl.ssl, 0);
     }
+
+    ret = wolfSSL_connect(sock->wolfssl.ssl);
+    if (ret != SSL_SUCCESS) {
+        printf("sock_dtls: failed to connect\n");
+        return -1;
+    }
+    return 0;
 }
 
 void sock_dtls_session_destroy(sock_dtls_t *sock, sock_dtls_session_t *remote)
 {
     (void)sock;
     (void)remote;
-    wolfSSL_free(sock->wolfssl.ssl);
+    int ret = wolfSSL_shutdown(sock->wolfssl.ssl);
+    if (ret != SSL_SUCCESS) {
+        printf("sock_dtls: session destroy failed\n");
+        int errcode = wolfSSL_get_error(sock->wolfssl.ssl, ret);
+        char errstr[30];
+        wolfSSL_ERR_error_string(errcode, errstr);
+        DEBUG("sock_dtls: %s: %d\n", errstr, errcode);
+    }
 }
 
 ssize_t sock_dtls_recv(sock_dtls_t *sock, sock_dtls_session_t *remote,
@@ -72,8 +97,30 @@ ssize_t sock_dtls_recv(sock_dtls_t *sock, sock_dtls_session_t *remote,
     (void)maxlen;
     (void)timeout;
 
-    wolfSSL_dtls_set_timeout_init(sock->wolfssl.ssl, timeout / US_PER_SEC);
-    return wolfSSL_read(sock->wolfssl.ssl, data, maxlen);
+    int ret;
+    sock->wolfssl.ssl = wolfSSL_new(sock->wolfssl.ctx);
+    if (sock->wolfssl.ssl == NULL) {
+        printf("sock_dtls: failed to create session\n");
+        return -1;
+    }
+    wolfSSL_SetIOReadCtx(sock->wolfssl.ssl, &sock->wolfssl);
+    wolfSSL_SetIOWriteCtx(sock->wolfssl.ssl, &sock->wolfssl);
+    sock->wolfssl.ssl->gnrcCtx = &sock->wolfssl;
+
+    ret = wolfSSL_accept(sock->wolfssl.ssl);
+    if (ret != SSL_SUCCESS) {
+        DEBUG("sock_dtls: failed to accept new connection\n");
+        int errcode = wolfSSL_get_error(sock->wolfssl.ssl, ret);
+        char errstr[30];
+        wolfSSL_ERR_error_string(errcode, errstr);
+        DEBUG("sock_dtls: %s: %d\n", errstr, errcode);
+    }
+    // wolfSSL_dtls_set_timeout_init(sock->wolfssl.ssl, timeout / US_PER_SEC);
+    ret = wolfSSL_read(sock->wolfssl.ssl, data, maxlen);
+    if (ret < 0) {
+        DEBUG("sock_dtls: read failed %d\n", ret);
+    }
+    return 0;
 }
 
 ssize_t sock_dtls_send(sock_dtls_t *sock, sock_dtls_session_t *remote,

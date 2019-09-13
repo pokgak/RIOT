@@ -113,17 +113,18 @@ void *dtls_server_wrapper(void *arg)
         }
         else {
             res = sock_dtls_recv(&sock, &session, rcv, sizeof(rcv),
-                                 1000000);
-            if (res < 0) {
+                                 SOCK_NO_TIMEOUT);
+            if (res <= 0) {
                 if (res != -ETIMEDOUT) {
-                    printf("Error receiving UDP over DTLS %d", (int)res);
+                    printf("Error receiving UDP over DTLS %d\n", (int)res);
                 }
-                continue;
+                // continue;
+                break;
             }
             printf("Received %d bytes -- (echo!)\n", (int)res);
             res = sock_dtls_send(&sock, &session, rcv, (int)res);
             if (res < 0) {
-                printf("Error resending DTLS message: %d", (int)res);
+                printf("Error resending DTLS message: %d\n", (int)res);
             }
         }
     }
@@ -132,7 +133,7 @@ void *dtls_server_wrapper(void *arg)
     sock_dtls_close(&sock);
     sock_udp_close(&udp_sock);
     puts("Terminating");
-    msg_reply(&msg, &msg);              /* Basic answer to the main thread */
+    // msg_reply(&msg, &msg);              /* Basic answer to the main thread */
     return 0;
 }
 
