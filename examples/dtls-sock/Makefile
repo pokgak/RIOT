@@ -27,15 +27,15 @@ USEMODULE += auto_init_gnrc_netif
 # Specify the mandatory networking modules for IPv6 and UDP
 USEMODULE += gnrc_ipv6_default
 USEMODULE += gnrc_sock_udp
+# Add also the shell, some shell commands
+USEMODULE += shell
+USEMODULE += shell_commands
+USEMODULE += ps
 
 # Use tinydtls for sock_dtls
 # USEMODULE += tinydtls_sock_dtls
 USEMODULE += wolfssl_sock_dtls
 USEMODULE += wolfssl_psk
-
-# Add also the shell, some shell commands
-USEMODULE += shell
-USEMODULE += shell_commands
 
 # UDP Port to use (20220 is default for DTLS).
 DTLS_PORT ?= 20220

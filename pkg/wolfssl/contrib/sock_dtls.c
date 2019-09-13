@@ -59,7 +59,11 @@ static int _send(WOLFSSL* ssl, char* buf, int sz, void* _ctx)
     if (!ctx)
         return WOLFSSL_CBIO_ERR_GENERAL;
     ret = sock_udp_send(ctx->udp_sock, (unsigned char *)buf, sz, &ctx->remote->ep);
-    if (ret == 0)
+    if (ret < 0) {
+        DEBUG("sock_dtls: send packet failed %d\n", ret);
+        return -1;
+    }
+    else if (ret == 0)
         return WOLFSSL_CBIO_ERR_WANT_WRITE;
     return ret;
 }
@@ -234,10 +238,7 @@ ssize_t sock_dtls_recv(sock_dtls_t *sock, sock_dtls_session_t *remote,
 ssize_t sock_dtls_send(sock_dtls_t *sock, sock_dtls_session_t *remote,
                        const void *data, size_t len)
 {
-    (void)sock;
-    (void)remote;
-    (void)data;
-    (void)len;
+    DEBUG("sock_dtls: entered sock_dtls_send()\n");
 
     if (!remote->ssl) {
         if (create_remote(sock, remote) < 0) {

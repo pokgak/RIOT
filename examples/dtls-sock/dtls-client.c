@@ -76,7 +76,7 @@ static int client_send(char *addr_str, char *data, size_t datalen)
     sock_udp_t udp_sock;
     sock_dtls_t dtls_sock;
     sock_dtls_session_t session;
-    sock_udp_ep_t remote;
+    sock_udp_ep_t remote = SOCK_IPV6_EP_ANY;
     sock_udp_ep_t local = SOCK_IPV6_EP_ANY;
     local.port = 12345;
     remote.port = DTLS_DEFAULT_PORT;
@@ -88,14 +88,14 @@ static int client_send(char *addr_str, char *data, size_t datalen)
             puts("Invalid network interface");
             return -1;
         }
-        remote.netif = iface;
+        local.netif = iface;
     } else if (gnrc_netif_numof() == 1) {
         /* assign the single interface found in gnrc_netif_numof() */
-        remote.netif = gnrc_netif_iter(NULL)->pid;
+        local.netif = gnrc_netif_iter(NULL)->pid;
     } else {
         /* no interface is given, or given interface is invalid */
         /* FIXME This probably is not valid with multiple interfaces */
-        remote.netif = SOCK_ADDR_ANY_NETIF;
+        local.netif = SOCK_ADDR_ANY_NETIF;
     }
 
     if (!ipv6_addr_from_str((ipv6_addr_t *)remote.addr.ipv6, addr_str)) {
@@ -103,8 +103,9 @@ static int client_send(char *addr_str, char *data, size_t datalen)
         return -1;
     }
 
-    if (sock_udp_create(&udp_sock, &local, NULL, 0) < 0) {
-        puts("Error creating UDP sock");
+    int ret = sock_udp_create(&udp_sock, &local, &remote, 0);
+    if (ret < 0) {
+        printf("Error creating UDP sock %d\n", ret);
         return -1;
     }
 
