@@ -176,6 +176,9 @@ int sock_dtls_session_create(sock_dtls_t *sock, const sock_udp_ep_t *ep,
     ret = wolfSSL_connect(sock->remote->ssl);
     if (ret != SSL_SUCCESS) {
         printf("sock_dtls: failed to connect\n");
+        char buffer[80];
+        ret = wolfSSL_get_error(sock->remote->ssl, ret);
+        printf(“error = %d, %s\n”, err, wolfSSL_ERR_error_string(ret, buffer));
         return -1;
     }
 
