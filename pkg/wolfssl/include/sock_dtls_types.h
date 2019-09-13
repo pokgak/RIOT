@@ -35,18 +35,22 @@ extern "C" {
 #endif
 
 /**
- * @brief Information about DTLS sock
- */
-struct sock_dtls {
-    // struct gnrc_wolfssl_ctx wolfssl;
-    struct gnrc_wolfssl_ctx wolfssl;
-};
-
-/**
  * @brief Information about remote client connected to the server
  */
 struct sock_dtls_session {
+    WOLFSSL *ssl;
     sock_udp_ep_t ep;
+};
+
+/**
+ * @brief Information about DTLS sock
+ */
+struct sock_dtls {
+    WOLFSSL_CTX *ctx;
+    sock_udp_t *udp_sock;
+    struct sock_dtls_session *remote; /* used in send callback */
+    uint32_t timeout;
+    credman_tag_t tag;
 };
 
 #ifdef __cplusplus

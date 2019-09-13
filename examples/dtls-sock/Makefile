@@ -41,6 +41,9 @@ USEMODULE += shell_commands
 DTLS_PORT ?= 20220
 CFLAGS += -DDTLS_DEFAULT_PORT=$(DTLS_PORT)
 
+CFLAGS += -DDTLS_WOLFSSL -Wno-unused-parameter -Wno-unused-variable
+CFLAGS += -DDEBUG_WOLFSSL
+
 # NOTE: If not cipher suite is selected, DTLS_PSK is used by default.
 # This adds support for TLS_PSK_WITH_AES_128_CCM_8
 CFLAGS += -DDTLS_PSK
@@ -55,9 +58,9 @@ CFLAGS += -DDTLS_PSK
 
 # FIXME: This is a temporary patch
 # TinyDTLS <= 0.8.6 requires around 426 bytes in RAM.
-CFLAGS += -DTHREAD_STACKSIZE_MAIN=\(3*THREAD_STACKSIZE_DEFAULT+512\)
+CFLAGS += -DTHREAD_STACKSIZE_MAIN=\(3*THREAD_STACKSIZE_DEFAULT\)
 # TINYDTLS_EXTRA_BUFF can be used for increasing the server stack memory.
-CFLAGS += -DTINYDTLS_EXTRA_BUFF=\(512\)
+# CFLAGS += -DTINYDTLS_EXTRA_BUFF=\(512\)
 
 # Comment this out to disable code in RIOT that does safety checking
 # which is not needed in a production environment but helps in the
