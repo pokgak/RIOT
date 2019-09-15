@@ -77,18 +77,29 @@ static int _recv(WOLFSSL *ssl, char *buf, int sz, void *_ctx)
 
     int ret;
     sock_dtls_t *ctx = (sock_dtls_t *)_ctx;
-    if (!ctx)
+    if (!ctx) {
         return WOLFSSL_CBIO_ERR_GENERAL;
-    // if (wolfSSL_get_using_nonblock(ssl)) {
-    //     ctx->timeout = 0;
-    // }
-    ret = sock_udp_recv(ctx->udp_sock, buf, sz, SOCK_NO_TIMEOUT, &ctx->remote->ep);
-    if (ret < 0) {
-        printf("sock_dtls: recv failed %d\n", ret);
     }
-    if (ret == -ETIMEDOUT) {
-        return WOLFSSL_CBIO_ERR_WANT_READ;
+
+    uint32_t timeout = ctx->timeout;
+    if ((timeout != SOCK_NO_TIMEOUT) &&
+        (timeout != 0)) {
+        timeout = wolfSSL_dtls_get_current_timeout(ssl) * US_PER_SEC;
     }
+    DEBUG("timeout: %u\n", timeout);
+    ret = sock_udp_recv(ctx->udp_sock, buf, sz, timeout, &ctx->remote->ep);
+    if (ret == 0) {
+        /* assume connection close if 0 bytes */
+        return WOLFSSL_CBIO_ERR_CONN_CLOSE;
+    }
+    else if (ret == -ETIMEDOUT) {
+        return WOLFSSL_CBIO_ERR_TIMEOUT;
+    }
+    else if (ret < 0) {
+        DEBUG("sock_dtls: recv failed %d\n", ret);
+        return WOLFSSL_CBIO_ERR_GENERAL;
+    }
+    /* no error */
     return ret;
 }
 
@@ -173,15 +184,15 @@ int sock_dtls_session_create(sock_dtls_t *sock, const sock_udp_ep_t *ep,
 
     XMEMCPY(&remote->ep, ep, sizeof(sock_udp_ep_t));
     if (create_remote(sock, remote) < 0) {
-        printf("sock_dtls: failed to create remote\n");
+        DEBUG("sock_dtls: failed to create remote\n");
     }
 
+    /* no timeout for handshake */
+    sock->timeout = SOCK_NO_TIMEOUT;
+    
     ret = wolfSSL_connect(sock->remote->ssl);
     if (ret != SSL_SUCCESS) {
-        printf("sock_dtls: failed to connect\n");
-        char buffer[80];
-        ret = wolfSSL_get_error(sock->remote->ssl, ret);
-        printf("error = %d, %s\n", ret, wolfSSL_ERR_error_string(ret, buffer));
+        DEBUG("sock_dtls: failed to connect\n");
         return -1;
     }
 
@@ -196,17 +207,15 @@ void sock_dtls_session_destroy(sock_dtls_t *sock, sock_dtls_session_t *remote)
 
     /* sends a "close notify" to remote */
     ret = wolfSSL_shutdown(remote->ssl);
-    while (ret == SSL_SHUTDOWN_NOT_DONE) {
-        xtimer_sleep(1);
-        ret = wolfSSL_shutdown(remote->ssl);
-    }
-
-    if (ret == SSL_FATAL_ERROR) {
-        printf("sock_dtls: session shutdown failed\n");
-        int errcode = wolfSSL_get_error(remote->ssl, ret);
-        char errstr[30];
-        wolfSSL_ERR_error_string(errcode, errstr);
-        DEBUG("sock_dtls: %s: %d\n", errstr, errcode);
+    DEBUG("wolfSSL shutdown return: %d\n", ret);
+    if (ret != SSL_SUCCESS) {
+        if (ret == WOLFSSL_SHUTDOWN_NOT_DONE) {
+            /* do a bidirectional shutdown */
+            wolfSSL_shutdown(remote->ssl);
+        }
+        else {
+            DEBUG("sock_dtls: closing session failed\n");
+        }
     }
 
     /* frees the allocated memory */
@@ -218,30 +227,31 @@ ssize_t sock_dtls_recv(sock_dtls_t *sock, sock_dtls_session_t *remote,
 {
     int ret;
 
-    sock->timeout = timeout;
-
     /* only create new remote if no existing session exists */
     if ((remote->ssl == NULL) && (create_remote(sock, remote) < 0)) {
-        printf("sock_dtls: failed to create remote\n");
+        DEBUG("sock_dtls: failed to create remote\n");
     }
 
-    /* this is done by wolfSSL_read() already */
-    // ret = wolfSSL_accept(sock->remote->ssl);
-    // if (ret != SSL_SUCCESS) {
-    //     DEBUG("sock_dtls: failed to accept new connection\n");
-    //     int errcode = wolfSSL_get_error(sock->remote->ssl, ret);
-    //     char errstr[30];
-    //     wolfSSL_ERR_error_string(errcode, errstr);
-    //     DEBUG("sock_dtls: %s: %d\n", errstr, errcode);
-    // }
+    if (timeout == 0) {
+        wolfSSL_set_using_nonblock(remote->ssl, 1);
+        sock->timeout = 0;
+    }
+    else {
+        wolfSSL_set_using_nonblock(remote->ssl, 0);
+        sock->timeout = timeout;
+        wolfSSL_dtls_set_timeout_init(remote->ssl, timeout * US_PER_SEC);
+    }
 
-    ret = wolfSSL_read(sock->remote->ssl, data, maxlen);
-    if (ret == 0) {
+    DEBUG("sock_dtls_recv: timeout: %u\n", sock->timeout);
+    ret = wolfSSL_read(remote->ssl, data, maxlen);
+    if (ret < 0) {
         DEBUG("sock_dtls: read failed %d\n", ret);
-        int errcode = wolfSSL_get_error(sock->remote->ssl, ret);
-        // char errstr[30];
-        // wolfSSL_ERR_error_string(errcode, errstr);
-        // DEBUG("sock_dtls: %s: %d\n", errstr, errcode);
+
+        char buffer[WOLFSSL_MAX_ERROR_SZ];
+        int err = wolfSSL_get_error(remote->ssl, ret);
+        wolfSSL_ERR_error_string(err, buffer);
+        DEBUG("wolfSSL error: %d: %s\n", err, buffer);
+        return ret;
     }
     // FIXME: adjust return value to API given values
     return ret;

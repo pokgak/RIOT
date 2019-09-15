@@ -81,7 +81,7 @@ void *dtls_server_wrapper(void *arg)
     bool active = true;
     msg_t _reader_queue[READER_QUEUE_SIZE];
     msg_t msg;
-    uint8_t rcv[512];
+    uint8_t rcv[256];
 
     /* Prepare (thread) messages reception */
     msg_init_queue(_reader_queue, READER_QUEUE_SIZE);
@@ -112,14 +112,17 @@ void *dtls_server_wrapper(void *arg)
             active = false;
         }
         else {
+            printf("******** Listening for new packet ********\n");
+            memset(rcv, 0, sizeof(rcv));
             res = sock_dtls_recv(&sock, &session, rcv, sizeof(rcv),
                                  SOCK_NO_TIMEOUT);
-            if (res < 0) {
-                if (res != -ETIMEDOUT) {
+            if (res <= 0) {
+                if (res != -ETIMEDOUT && res != 0) {
                     printf("Error receiving UDP over DTLS %d\n", (int)res);
                 }
+                sock_dtls_session_destroy(&sock, &session);
+                memset(&session, 0, sizeof(sock_dtls_session_t));
                 continue;
-                // break;
             }
             printf("Received %d bytes -- (echo!)\n", (int)res);
             res = sock_dtls_send(&sock, &session, rcv, (int)res);
