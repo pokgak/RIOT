@@ -33,9 +33,9 @@ USEMODULE += shell_commands
 USEMODULE += ps
 
 # Use tinydtls for sock_dtls
-# USEMODULE += tinydtls_sock_dtls
-USEMODULE += wolfssl_sock_dtls
-USEMODULE += wolfssl_psk
+USEMODULE += tinydtls_sock_dtls
+# USEMODULE += wolfssl_sock_dtls
+# USEMODULE += wolfssl_psk
 
 # UDP Port to use (20220 is default for DTLS).
 DTLS_PORT ?= 20220
