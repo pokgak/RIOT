@@ -40,7 +40,7 @@ ifneq (,$(filter wolfssl_tls13,$(USEMODULE)))
 endif
 
 ifneq (,$(filter wolfssl_dtls,$(USEMODULE)))
-  # USEMODULE += sock_tls
+  USEMODULE += sock_tls
 endif
 
 ifneq (,$(filter wolfssl_psk,$(USEMODULE)))

@@ -12,7 +12,7 @@
 
 static void _add_credential(void);
 
-static sock_udp_ep_t remote;
+static sock_udp_ep_t remote = SOCK_IPV6_EP_ANY;
 static sock_udp_ep_t local = SOCK_IPV6_EP_ANY;
 static sock_udp_t sock_udp;
 static sock_dtls_t sock_dtls;

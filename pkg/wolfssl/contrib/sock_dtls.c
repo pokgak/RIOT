@@ -1,7 +1,7 @@
 #include "net/sock/dtls.h"
 #include "net/credman.h"
 
-#define ENABLE_DEBUG (1)
+#define ENABLE_DEBUG (0)
 #include "debug.h"
 
 #ifdef MODULE_WOLFSSL_PSK
@@ -15,10 +15,10 @@ static unsigned psk_client_cb(WOLFSSL* ssl, const char* hint, char* identity,
     credman_credential_t c;
     credman_get(&c, ctx->tag, CREDMAN_TYPE_PSK);
     /* FIXME: ignore id for now */
-    // if (id_max_len < c.params.psk.id.len) {
-    //     return 0;   /* FIXME: how to signal error? */
-    // }
-    // strncpy(identity, c.params.psk.id.s, c.params.psk.id.len);
+    if (id_max_len < c.params.psk.id.len) {
+        return 0;   /* FIXME: how to signal error? */
+    }
+    strncpy(identity, c.params.psk.id.s, c.params.psk.id.len);
 
     if (key_max_len < c.params.psk.key.len) {
         return 0;   /* FIXME: how to signal error? */
@@ -84,7 +84,7 @@ static int _recv(WOLFSSL *ssl, char *buf, int sz, void *_ctx)
         (timeout != 0)) {
         timeout = wolfSSL_dtls_get_current_timeout(ssl) * US_PER_SEC;
     }
-    DEBUG("wolfssl timeout: %u\n", timeout);
+    // DEBUG("wolfssl timeout: %u\n", timeout);
     ret = sock_udp_recv(ctx->udp_sock, buf, sz, timeout, &ctx->remote->ep);
     if (ret == 0) {
         /* assume connection close if 0 bytes */
@@ -247,10 +247,10 @@ ssize_t sock_dtls_recv(sock_dtls_t *sock, sock_dtls_session_t *remote,
     }
 
     if (remote->ssl->options.dtls) {
-        printf("SSL have dtls Options\n");
+        DEBUG("SSL have dtls Options\n");
     }
     else {
-        printf("SSL DONOT have dtls Options\n");
+        DEBUG("SSL DONOT have dtls Options\n");
     }
 
     if (timeout == 0) {
@@ -266,7 +266,6 @@ ssize_t sock_dtls_recv(sock_dtls_t *sock, sock_dtls_session_t *remote,
 
     // DEBUG("sock_dtls_recv: timeout: %u\n", sock->timeout);
     ret = wolfSSL_read(remote->ssl, data, maxlen);
-    printf("ret from read\n");
     if (ret < 0) {
         DEBUG("sock_dtls: read failed %d\n", ret);
 

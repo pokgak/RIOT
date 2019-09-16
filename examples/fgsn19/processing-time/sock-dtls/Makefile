@@ -1,5 +1,5 @@
 # name of your application
-APPLICATION = dtls_sock_tinydtls_client
+APPLICATION = dtls_sock_client
 
 # If no BOARD is found in the environment, use this default:
 BOARD ?= native
@@ -30,13 +30,18 @@ USEMODULE += gnrc_sock_udp
 USEMODULE += core_thread_flags
 
 # Use tinydtls for sock_dtls
-USEMODULE += tinydtls_sock_dtls
+# USEMODULE += tinydtls_sock_dtls
+USEMODULE += wolfssl_sock_dtls
+USEMODULE += wolfssl_psk
+CFLAGS += -DHAVE_AESCCM -DWOLFSSL_AES_128
+CFLAGS += -Wno-unused-parameter -Wno-unused-variable
+CFLAGS += -DDEBUG_WOLFSSL
 
 # UDP Port to use (20220 is default for DTLS).
 DTLS_PORT ?= 20220
 CFLAGS += -DDTLS_DEFAULT_PORT=$(DTLS_PORT)
 
-DEFAULT_CHANNEL ?= 12
+DEFAULT_CHANNEL ?= 20
 CFLAGS += -DIEEE802154_DEFAULT_CHANNEL=$(DEFAULT_CHANNEL)
 
 # NOTE: If not cipher suite is selected, DTLS_PSK is used by default.
