@@ -35,13 +35,13 @@ USEMODULE += wolfssl_sock_dtls
 USEMODULE += wolfssl_psk
 CFLAGS += -DHAVE_AESCCM -DWOLFSSL_AES_128
 CFLAGS += -Wno-unused-parameter -Wno-unused-variable
-CFLAGS += -DDEBUG_WOLFSSL
+# CFLAGS += -DDEBUG_WOLFSSL
 
 # UDP Port to use (20220 is default for DTLS).
 DTLS_PORT ?= 20220
 CFLAGS += -DDTLS_DEFAULT_PORT=$(DTLS_PORT)
 
-DEFAULT_CHANNEL ?= 20
+DEFAULT_CHANNEL ?= 22
 CFLAGS += -DIEEE802154_DEFAULT_CHANNEL=$(DEFAULT_CHANNEL)
 
 # NOTE: If not cipher suite is selected, DTLS_PSK is used by default.
