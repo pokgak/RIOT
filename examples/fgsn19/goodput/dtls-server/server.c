@@ -67,8 +67,8 @@ typedef struct {
 #endif
 
 /* exp values */
-uint16_t packet25, packet50,packet75, packet100, packet125, packet150;
-uint16_t packet175, packet200, packet225, packet250, packet275, packet300;
+#define INCREMENT (25)
+uint16_t packets[(DTLS_MAX_BUF - 100) / INCREMENT];
 static int session_established = 0;
 
 static int _read_from_peer_handler(struct dtls_context_t *ctx,
@@ -133,7 +133,7 @@ static void dtls_handle_read(dtls_context_t *ctx)
     dtls_remote_peer_t *remote_peer;
     remote_peer = (dtls_remote_peer_t *)dtls_get_app_data(ctx);
 
-    ssize_t res = sock_udp_recv(remote_peer->sock, packet_rcvd, DTLS_MAX_BUF,
+    ssize_t res = sock_udp_recv(remote_peer->sock, packet_rcvd, sizeof(packet_rcvd),
                                 1 * US_PER_SEC, remote_peer->remote);
 
     if (res <= 0) {
@@ -191,21 +191,11 @@ static int _read_from_peer_handler(struct dtls_context_t *ctx,
     (void)ctx;
     (void)session;
     (void)data;
+    printf("got len: %u\n", len);
 
-    switch (len) {
-        case 25: packet25++; break;
-        case 50: packet50++; break;
-        case 75: packet75++; break;
-        case 100: packet100++; break;
-        case 125: packet125++; break;
-        case 150: packet150++; break;
-        case 175: packet175++; break;
-        case 200: packet200++; break;
-        case 225: packet225++; break;
-        case 250: packet250++; break;
-        case 275: packet275++; break;
-        case 300: packet300++; break;
-    }
+    int idx = (len / INCREMENT) - 1;
+    packets[idx] = packets[idx] + 1;
+
     return len;
 }
 
@@ -400,10 +390,14 @@ int result_cmd(int argc, char **argv)
     (void)argc;
     (void)argv;
     printf("BEGIN RESULT\n");
-    printf("25,50,75,100,125,150,175,200,225,250,275,300\n");
-    printf("%u,%u,%u,%u,%u,%u,%u,%u,%u,%u,%u,%u\n",
-        packet25, packet50, packet75, packet100, packet125, packet150,
-        packet175, packet200, packet225, packet250, packet275, packet300);
+    for (int i = 1; i <= (DTLS_MAX_BUF - 100) / INCREMENT; i++) {
+        printf("%d,", i * INCREMENT);
+    }
+    puts("");
+    for (int i = 0; i < (DTLS_MAX_BUF - 100) / INCREMENT; i++) {
+        printf("%d,", packets[i]);
+    }
+    puts("");
     printf("END RESULT\n");
     return 0;
 }

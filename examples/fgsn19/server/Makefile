@@ -42,8 +42,8 @@ USEMODULE += ps
 DTLS_PORT ?= 20220
 CFLAGS += -DDTLS_DEFAULT_PORT=$(DTLS_PORT)
 
-# DTLS_MAX_BUF ?= 200
-# CFLAGS += -DDTLS_MAX_BUF=$(DTLS_MAX_BUF)
+DTLS_MAX_BUF ?= 400
+CFLAGS += -DDTLS_MAX_BUF=$(DTLS_MAX_BUF)
 
 # NOTE: If not cipher suite is selected, DTLS_PSK is used by default.
 # This adds support for TLS_PSK_WITH_AES_128_CCM_8
@@ -53,7 +53,7 @@ CFLAGS += -DDTLS_PSK
 
 # Define the log entry for the tinydtls package.
 # Values: 0:EMERG (Default), 1:ALERT 2:CRIT 3:WARN 4:NOTICE 5:INFO 6:DEBUG
-TINYDTLS_LOG ?= 6
+# TINYDTLS_LOG ?= 6
 
 # FIXME: This is a temporary patch
 # TinyDTLS <= 0.8.6 requires around 426 bytes in RAM.

@@ -5,8 +5,8 @@
 #include "xtimer.h"
 
 #ifndef SERVER_ADDR
-// #define SERVER_ADDR "fe80::7b76:7968:5ef6:617a"
-#define SERVER_ADDR "fe80::440e:62ff:fe60:960b"
+#define SERVER_ADDR "fe80::7b76:7968:5ef6:617a"
+// #define SERVER_ADDR "fe80::440e:62ff:fe60:960b"
 #endif
 
 #define MAIN_QUEUE_SIZE     (8)
@@ -28,7 +28,7 @@ int main(void)
         return -1;
     }
 
-#define MAX_PAYLOAD_SIZE  (300)
+#define MAX_PAYLOAD_SIZE  (DTLS_MAX_BUF - 100)
 #define INCREMENT (25)
 #define PACKETS_PER_SIZE (1)
 

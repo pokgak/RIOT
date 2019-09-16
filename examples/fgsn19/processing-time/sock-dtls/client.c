@@ -41,14 +41,14 @@ int client_init(const char *addr)
     ipv6_addr_from_str((ipv6_addr_t *)&remote.addr.ipv6, addr);
     remote.port = DTLS_DEFAULT_PORT;
 
-    res = sock_dtls_create(&sock_dtls, &sock_udp, 0);
+    res = sock_dtls_create(&sock_dtls, &sock_udp, DTLS_SOCK_CLIENT_TAG, SOCK_DTLS_1_2, SOCK_DTLS_CLIENT);
     if (res < 0) {
         puts("Error creating DTLS sock");
         return -1;
     }
 
     _add_credential();
-    res = sock_dtls_establish_session(&sock_dtls, &remote, &session);
+    res = sock_dtls_session_create(&sock_dtls, &remote, &session);
     if (res < 0) {
         printf("Error establishing session: %d\n", res);
         return -1;
@@ -67,8 +67,8 @@ int client_send(const char *data, size_t len)
 
 void client_close(void)
 {
-    sock_dtls_close_session(&sock_dtls, &session);
-    sock_dtls_destroy(&sock_dtls);
+    sock_dtls_session_destroy(&sock_dtls, &session);
+    sock_dtls_close(&sock_dtls);
 }
 
 // int exp_cmd(int argc, char **argv)
@@ -117,11 +117,10 @@ void client_close(void)
 
 static void _add_credential(void)
 {
-    credman_tag_t tags[] = { DTLS_SOCK_CLIENT_TAG };
 #ifdef DTLS_PSK
     credman_credential_t credential = {
         .type = CREDMAN_TYPE_PSK,
-        .tag = tags[0],
+        .tag = DTLS_SOCK_CLIENT_TAG,
         .params = {
             .psk = {
                 .key = { .s = psk_key_0, .len = sizeof(psk_key_0) - 1, },
@@ -141,7 +140,7 @@ static void _add_credential(void)
 #ifdef DTLS_ECC
     credman_credential_t credential = {
         .type = CREDMAN_TYPE_ECDSA,
-        .tag = tags[0],
+        .tag = DTLS_SOCK_CLIENT_TAG,
         .params = {
             .ecdsa = {
                 .private_key = ecdsa_priv_key,
@@ -160,6 +159,4 @@ static void _add_credential(void)
         }
     }
 #endif /* DTLS_ECC */
-
-    sock_dtls_register_credential_tags(&sock_dtls, tags, sizeof(tags) / sizeof(tags[0]));
 }

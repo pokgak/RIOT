@@ -11,8 +11,7 @@
 static msg_t _main_msg_queue[MAIN_QUEUE_SIZE];
 
 char server_stack[THREAD_STACKSIZE_MAIN +
-                  THREAD_EXTRA_STACKSIZE_PRINTF +
-                  TINYDTLS_EXTRA_BUFF];
+                  THREAD_EXTRA_STACKSIZE_PRINTF];
 
 extern void *start_server(void *arg);
 extern int result_cmd(int argc, char **argv);

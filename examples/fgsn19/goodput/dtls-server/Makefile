@@ -28,7 +28,7 @@ USEMODULE += auto_init_gnrc_netif
 # Specify the mandatory networking modules for IPv6 and UDP
 USEMODULE += gnrc_ipv6_default
 USEMODULE += gnrc_sock_udp
-USEMODULE += gnrc_icmpv6_echo
+# USEMODULE += gnrc_icmpv6_echo
 
 DEFAULT_CHANNEL ?= 12
 CFLAGS += -DIEEE802154_DEFAULT_CHANNEL=$(DEFAULT_CHANNEL)
@@ -50,9 +50,9 @@ CFLAGS += -DDTLS_PSK
 
 # Define the log entry for the tinydtls package.
 # Values: 0:EMERG (Default), 1:ALERT 2:CRIT 3:WARN 4:NOTICE 5:INFO 6:DEBUG
-TINYDTLS_LOG ?= 0
+# TINYDTLS_LOG ?= 0
 
-DTLS_MAX_BUF ?= 400
+DTLS_MAX_BUF ?= 700
 CFLAGS += -DDTLS_MAX_BUF=$(DTLS_MAX_BUF)
 
 # Enable this line for setting tinyDTLS in debug mode.
@@ -63,7 +63,7 @@ CFLAGS += -DDTLS_MAX_BUF=$(DTLS_MAX_BUF)
 # TinyDTLS <= 0.8.6 requires around 426 bytes in RAM.
 CFLAGS += -DTHREAD_STACKSIZE_MAIN=\(3*THREAD_STACKSIZE_DEFAULT\)
 # TINYDTLS_EXTRA_BUFF can be used for increasing the server stack memory.
-CFLAGS += -DTINYDTLS_EXTRA_BUFF=\(512\)
+# CFLAGS += -DTINYDTLS_EXTRA_BUFF=\(512\)
 
 # Comment this out to disable code in RIOT that does safety checking
 # which is not needed in a production environment but helps in the

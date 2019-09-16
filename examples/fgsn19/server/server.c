@@ -23,7 +23,7 @@ static int packet_count = 0;
 void start_server(void)
 {
     ssize_t res;
-    uint8_t rcv[400];
+    uint8_t rcv[DTLS_MAX_BUF];
 
     sock_dtls_t sock;
     sock_udp_t udp_sock;
