@@ -32,6 +32,10 @@ int main(void)
 #define INCREMENT (25)
 #define PACKETS_PER_SIZE (1)
 
+    printf("######### THREAD_STACKSIZE_DEFAULT=%d\n", THREAD_STACKSIZE_DEFAULT);
+    printf("######### THREAD_STACKSIZE_DEFAULT=%d\n", THREAD_STACKSIZE_LARGE);
+    printf("######### THREAD_STACKSIZE_MAIN=%d\n", THREAD_STACKSIZE_MAIN);
+
     char payload[MAX_PAYLOAD_SIZE];
     puts("sock_dtls experiment for FGSN19 paper - CLIENT");
     puts("----------------BEGIN EXPERIMENT----------------");

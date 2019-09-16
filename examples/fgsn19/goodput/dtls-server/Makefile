@@ -52,7 +52,7 @@ CFLAGS += -DDTLS_PSK
 # Values: 0:EMERG (Default), 1:ALERT 2:CRIT 3:WARN 4:NOTICE 5:INFO 6:DEBUG
 # TINYDTLS_LOG ?= 0
 
-DTLS_MAX_BUF ?= 700
+DTLS_MAX_BUF ?= 1100
 CFLAGS += -DDTLS_MAX_BUF=$(DTLS_MAX_BUF)
 
 # Enable this line for setting tinyDTLS in debug mode.
