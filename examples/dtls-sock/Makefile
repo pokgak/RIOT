@@ -43,7 +43,9 @@ CFLAGS += -DDTLS_DEFAULT_PORT=$(DTLS_PORT)
 
 CFLAGS += -DDTLS_WOLFSSL -Wno-unused-parameter -Wno-unused-variable
 CFLAGS += -DDEBUG_WOLFSSL
-CFLAGS += -DHAVE_AESCCM -DWOLFSSL_AES_128
+# to enable TLS_PSK_WITH_AES_128_CCM_8 for interop with tinydtls
+CFLAGS += -DHAVE_AESCCM
+CFLAGS += -DWOLFSSL_AES_128
 
 # NOTE: If not cipher suite is selected, DTLS_PSK is used by default.
 # This adds support for TLS_PSK_WITH_AES_128_CCM_8

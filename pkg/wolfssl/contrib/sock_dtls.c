@@ -148,16 +148,12 @@ int sock_dtls_create(sock_dtls_t *sock, sock_udp_t *udp_sock,
             return -1;
     }
 
-    /* default to "TLS_PSK_WITH_AES_128_CCM_8" for now */
-    if (wolfSSL_CTX_set_cipher_list(sock->ctx, "PSK-AES128-CCM-8") != SSL_SUCCESS) {
-        DEBUG("sock_dtls: failed to set cipher list\n");
-    }
     char ciphers[256];
     if (wolfSSL_get_ciphers(ciphers, sizeof(ciphers)) != SSL_SUCCESS) {
         DEBUG("sock_dtls: failed to get cipher list\n");
     }
     else {
-        DEBUG("%s", ciphers);
+        DEBUG("sock_dtls: built-in ciphers: %s\n", ciphers);
     }
 
     sock->tag = tag;
