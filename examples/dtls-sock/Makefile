@@ -33,9 +33,9 @@ USEMODULE += shell_commands
 USEMODULE += ps
 
 # Use tinydtls for sock_dtls
-USEMODULE += tinydtls_sock_dtls
-# USEMODULE += wolfssl_sock_dtls
-# USEMODULE += wolfssl_psk
+# USEMODULE += tinydtls_sock_dtls
+USEMODULE += wolfssl_sock_dtls
+USEMODULE += wolfssl_psk
 
 # UDP Port to use (20220 is default for DTLS).
 DTLS_PORT ?= 20220
@@ -43,6 +43,7 @@ CFLAGS += -DDTLS_DEFAULT_PORT=$(DTLS_PORT)
 
 CFLAGS += -DDTLS_WOLFSSL -Wno-unused-parameter -Wno-unused-variable
 CFLAGS += -DDEBUG_WOLFSSL
+CFLAGS += -DHAVE_AESCCM -DWOLFSSL_AES_128
 
 # NOTE: If not cipher suite is selected, DTLS_PSK is used by default.
 # This adds support for TLS_PSK_WITH_AES_128_CCM_8
@@ -51,7 +52,7 @@ CFLAGS += -DDTLS_PSK
 # CFLAGS += -DDTLS_ECC
 
 # Uncomment to enable debug logs
-# CFLAGS += -DDTLS_DEBUG
+CFLAGS += -DDTLS_DEBUG
 # When DTLS_DEBUG is set and using tinydtls, verbosity of debug log can be set with
 # Values: 0:EMERG (Default), 1:ALERT 2:CRIT 3:WARN 4:NOTICE 5:INFO 6:DEBUG
 # TINYDTLS_LOG=3

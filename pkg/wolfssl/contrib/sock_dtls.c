@@ -148,6 +148,18 @@ int sock_dtls_create(sock_dtls_t *sock, sock_udp_t *udp_sock,
             return -1;
     }
 
+    /* default to "TLS_PSK_WITH_AES_128_CCM_8" for now */
+    if (wolfSSL_CTX_set_cipher_list(sock->ctx, "PSK-AES128-CCM-8") != SSL_SUCCESS) {
+        DEBUG("sock_dtls: failed to set cipher list\n");
+    }
+    char ciphers[256];
+    if (wolfSSL_get_ciphers(ciphers, sizeof(ciphers)) != SSL_SUCCESS) {
+        DEBUG("sock_dtls: failed to get cipher list\n");
+    }
+    else {
+        DEBUG("%s", ciphers);
+    }
+
     sock->tag = tag;
     sock->udp_sock = udp_sock;
     return 0;
@@ -189,7 +201,7 @@ int sock_dtls_session_create(sock_dtls_t *sock, const sock_udp_ep_t *ep,
 
     /* no timeout for handshake */
     sock->timeout = SOCK_NO_TIMEOUT;
-    
+
     ret = wolfSSL_connect(sock->remote->ssl);
     if (ret != SSL_SUCCESS) {
         DEBUG("sock_dtls: failed to connect\n");
