@@ -30,7 +30,7 @@
 #include "random.h"
 #include "thread.h"
 
-#define ENABLE_DEBUG (0)
+#define ENABLE_DEBUG (1)
 #include "debug.h"
 
 /* Return values used by the _find_resource function. */
@@ -115,7 +115,8 @@ static sock_dtls_t _tl_sock;
 static ssize_t _tl_send(sock_dtls_t *sock, const void *data, size_t len,
                      const sock_udp_ep_t *remote)
 {
-    sock_dtls_session_t session;
+    sock_dtls_session_t session = {0};
+#ifdef MODULE_TINYDTLS_SOCK_DTLS
     /* convert sock_udp_ep_t to sock_dtls_session_t */
     session.dtls_session.port = remote->port;
     session.dtls_session.ifindex = remote->netif;
@@ -123,6 +124,10 @@ static ssize_t _tl_send(sock_dtls_t *sock, const void *data, size_t len,
                                 sizeof(unsigned short); /* port */
     memcpy(&session.dtls_session.addr, &remote->addr.ipv6, sizeof(ipv6_addr_t));
     memcpy(&session.ep, remote, sizeof(sock_udp_ep_t));
+#endif
+#ifdef MODULE_WOLFSSL_SOCK_DTLS
+    memcpy(&sock->remote->ep, remote, sizeof(sock_udp_ep_t));
+#endif
 
     ssize_t res = sock_dtls_send(sock, &session, data, len);
     return res;
@@ -131,12 +136,19 @@ static ssize_t _tl_send(sock_dtls_t *sock, const void *data, size_t len,
 static ssize_t _tl_recv(sock_dtls_t *sock, void *data, size_t max_len,
                      uint32_t timeout, sock_udp_ep_t *remote)
 {
-    sock_dtls_session_t session;
+    printf("gcoap timeout: %u\n", timeout);
+    sock_dtls_session_t session = {0};
     ssize_t res = sock_dtls_recv(sock, &session, data, max_len, timeout);
+    printf("gcoap: sock_dtls_recv res: %d\n", res);
     if (res < 0) {
         return res;
     }
+#ifdef MODULE_TINYDTLS_SOCK_DTLS
     memcpy(remote, &session.ep, sizeof(sock_udp_ep_t));
+#endif
+#ifdef MODULE_WOLFSSL_SOCK_DTLS
+    memcpy(remote, &session.ep, sizeof(sock_udp_ep_t));
+#endif
     return res;
 }
 #else

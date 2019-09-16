@@ -5,8 +5,6 @@
 #include "debug.h"
 
 #ifdef MODULE_WOLFSSL_PSK
-/* identity is OpenSSL testing default for openssl s_client, keep same */
-static const char* kIdentityStr = "Client_identity";
 
 static unsigned psk_client_cb(WOLFSSL* ssl, const char* hint, char* identity,
                               unsigned int id_max_len, unsigned char* key,
@@ -86,7 +84,7 @@ static int _recv(WOLFSSL *ssl, char *buf, int sz, void *_ctx)
         (timeout != 0)) {
         timeout = wolfSSL_dtls_get_current_timeout(ssl) * US_PER_SEC;
     }
-    DEBUG("timeout: %u\n", timeout);
+    DEBUG("wolfssl timeout: %u\n", timeout);
     ret = sock_udp_recv(ctx->udp_sock, buf, sz, timeout, &ctx->remote->ep);
     if (ret == 0) {
         /* assume connection close if 0 bytes */
@@ -126,6 +124,9 @@ int sock_dtls_create(sock_dtls_t *sock, sock_udp_t *udp_sock,
             DEBUG("sock_dtls: unknown method\n");
             return -1;
     }
+#ifdef MODULE_GCOAP
+    method = wolfDTLSv1_2_method();
+#endif
     sock->ctx = wolfSSL_CTX_new(method);
     if (!sock->ctx) {
         DEBUG("sock_dtls: failed to create new ctx\n");
@@ -164,6 +165,8 @@ int sock_dtls_create(sock_dtls_t *sock, sock_udp_t *udp_sock,
 /* ep can be NULL for recv */
 static int create_remote(sock_dtls_t *sock, sock_dtls_session_t *remote)
 {
+    DEBUG("ENTERING create_remote\n");
+    remote->ssl = NULL;
     remote->ssl = wolfSSL_new(sock->ctx);
     if (remote->ssl == NULL) {
         DEBUG("sock_dtls: create new ssl remote failed\n");
@@ -171,9 +174,9 @@ static int create_remote(sock_dtls_t *sock, sock_dtls_session_t *remote)
     }
     wolfSSL_SetIOReadCtx(remote->ssl, sock);
     wolfSSL_SetIOWriteCtx(remote->ssl, sock);
-    /* just default to blocking for now */
-    wolfSSL_set_using_nonblock(remote->ssl, 0);
     sock->remote = remote;
+    sock->timeout = SOCK_NO_TIMEOUT;
+    DEBUG("LEAVING create_remote\n");
     return 0;
 }
 
@@ -197,6 +200,8 @@ int sock_dtls_session_create(sock_dtls_t *sock, const sock_udp_ep_t *ep,
 
     /* no timeout for handshake */
     sock->timeout = SOCK_NO_TIMEOUT;
+
+    wolfSSL_set_using_nonblock(remote->ssl, 0);
 
     ret = wolfSSL_connect(sock->remote->ssl);
     if (ret != SSL_SUCCESS) {
@@ -233,11 +238,19 @@ void sock_dtls_session_destroy(sock_dtls_t *sock, sock_dtls_session_t *remote)
 ssize_t sock_dtls_recv(sock_dtls_t *sock, sock_dtls_session_t *remote,
                        void *data, size_t maxlen, uint32_t timeout)
 {
+    DEBUG("ENTERING sock_dtls_recv()\n");
     int ret;
 
     /* only create new remote if no existing session exists */
     if ((remote->ssl == NULL) && (create_remote(sock, remote) < 0)) {
         DEBUG("sock_dtls: failed to create remote\n");
+    }
+
+    if (remote->ssl->options.dtls) {
+        printf("SSL have dtls Options\n");
+    }
+    else {
+        printf("SSL DONOT have dtls Options\n");
     }
 
     if (timeout == 0) {
@@ -247,11 +260,13 @@ ssize_t sock_dtls_recv(sock_dtls_t *sock, sock_dtls_session_t *remote,
     else {
         wolfSSL_set_using_nonblock(remote->ssl, 0);
         sock->timeout = timeout;
-        wolfSSL_dtls_set_timeout_init(remote->ssl, timeout * US_PER_SEC);
+        wolfSSL_dtls_set_timeout_max(remote->ssl, timeout / US_PER_SEC);
+        wolfSSL_dtls_set_timeout_init(remote->ssl, timeout / US_PER_SEC);
     }
 
-    DEBUG("sock_dtls_recv: timeout: %u\n", sock->timeout);
+    // DEBUG("sock_dtls_recv: timeout: %u\n", sock->timeout);
     ret = wolfSSL_read(remote->ssl, data, maxlen);
+    printf("ret from read\n");
     if (ret < 0) {
         DEBUG("sock_dtls: read failed %d\n", ret);
 
@@ -270,7 +285,7 @@ ssize_t sock_dtls_send(sock_dtls_t *sock, sock_dtls_session_t *remote,
 {
     DEBUG("sock_dtls: entered sock_dtls_send()\n");
 
-    if (!remote->ssl) {
+    if (remote->ssl == NULL) {
         if (create_remote(sock, remote) < 0) {
             DEBUG("sock_dtls: failed to create remote\n");
             return -1;

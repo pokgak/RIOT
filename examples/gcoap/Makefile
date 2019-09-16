@@ -38,13 +38,17 @@ USEMODULE += gnrc_icmpv6_echo
 
 # DTLS configuration
 # Choose which DTLS stack to use
-USEMODULE += tinydtls_sock_dtls # tinyDTLS
-CFLAGS += -DDTLS_PSK
-#USEMODULE += wolfssl_sock_dtls # wolfSSL
+# USEMODULE += tinydtls_sock_dtls # tinyDTLS
+# CFLAGS += -DDTLS_PSK
+USEMODULE += wolfssl_sock_dtls # wolfSSL
+USEMODULE += wolfssl_psk
+CFLAGS += -DWOLFSSL_EITHER_SIDE
 # DTLS will need at least (THREAD_STACKSIZE_DEFAULT+1024) as stack size
-CFLAGS += -DTHREAD_STACKSIZE_MAIN=\(THREAD_STACKSIZE_DEFAULT+1024\)
+CFLAGS += -DTHREAD_STACKSIZE_MAIN=\(3*THREAD_STACKSIZE_DEFAULT\)
 # Uncomment to enable debug logs when using DTLS
-# CFLAGS += -DDTLS_DEBUG
+CFLAGS += -DDTLS_DEBUG -DDEBUG_WOLFSSL
+# wolfssl flags
+CFLAGS += -Wno-unused-parameter -Wno-unused-variable
 
 # Required by gcoap example
 USEMODULE += od

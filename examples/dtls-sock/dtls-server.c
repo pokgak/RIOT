@@ -115,7 +115,7 @@ void *dtls_server_wrapper(void *arg)
             printf("******** Listening for new packet ********\n");
             memset(rcv, 0, sizeof(rcv));
             res = sock_dtls_recv(&sock, &session, rcv, sizeof(rcv),
-                                 SOCK_NO_TIMEOUT);
+                                 1 * US_PER_SEC);
             if (res <= 0) {
                 if (res != -ETIMEDOUT && res != 0) {
                     printf("Error receiving UDP over DTLS %d\n", (int)res);
