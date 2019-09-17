@@ -5,8 +5,9 @@
 #include "xtimer.h"
 
 #ifndef SERVER_ADDR
-#define SERVER_ADDR "fe80::7b76:7968:5ef6:617a"
-// #define SERVER_ADDR "fe80::6813:98ff:fe97:ab67"
+// #define SERVER_ADDR "fe80::7b76:7968:5ef6:617a"
+#define SERVER_ADDR "fe80::7b65:122:d676:39ea"
+// #define SERVER_ADDR "fe80::440e:62ff:fe60:960b"
 #endif
 
 #define MAIN_QUEUE_SIZE     (8)
@@ -24,9 +25,14 @@ int main(void)
     xtimer_sleep(2);
     client_init(SERVER_ADDR);
 
-#define MAX_PAYLOAD_SIZE  (300)
+#define MAX_PAYLOAD_SIZE  (DTLS_MAX_BUF - 100)
 #define INCREMENT (25)
 #define PACKETS_PER_SIZE (5000)
+// #define PACKETS_PER_SIZE (1)
+
+    // printf("######### THREAD_STACKSIZE_DEFAULT=%d\n", THREAD_STACKSIZE_DEFAULT);
+    // printf("######### THREAD_STACKSIZE_DEFAULT=%d\n", THREAD_STACKSIZE_LARGE);
+    printf("######### THREAD_STACKSIZE_MAIN=%d\n", THREAD_STACKSIZE_MAIN);
 
     char payload[MAX_PAYLOAD_SIZE];
     puts("tinydtls experiment for FGSN19 paper - CLIENT");

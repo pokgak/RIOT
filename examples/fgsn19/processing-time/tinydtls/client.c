@@ -35,11 +35,6 @@
 #define ENABLE_DEBUG (0)
 #include "debug.h"
 
-#ifndef SERVER_ADDR
-#define SERVER_ADDR "fe80::7b76:7968:5ef6:617a"
-// #define SERVER_ADDR "fe80::6813:98ff:fe97:ab67"
-#endif
-
 #ifndef DTLS_DEFAULT_PORT
 #define DTLS_DEFAULT_PORT 20220 /* DTLS default port */
 #endif
@@ -61,7 +56,7 @@ static session_t session;
 static dtls_context_t *dtls_context = NULL;
 
 static mbox_t mbox;
-static msg_t mbox_queue[10];
+static msg_t mbox_queue[16];
 
 /* experiment values */
 static uint32_t session_start = 0;
@@ -110,7 +105,7 @@ static void dtls_handle_read(dtls_context_t *ctx)
 {
     static session_t session;
     static sock_udp_ep_t remote = SOCK_IPV6_EP_ANY;
-    uint8_t packet_rcvd[DTLS_MAX_BUF];
+    uint8_t packet_rcvd[256];
 
     if (!ctx) {
         DEBUG("%s: No DTLS context\n", __func__);
@@ -131,7 +126,7 @@ static void dtls_handle_read(dtls_context_t *ctx)
         return;
     }
 
-    ssize_t res = sock_udp_recv(sock, packet_rcvd, DTLS_MAX_BUF,
+    ssize_t res = sock_udp_recv(sock, packet_rcvd, sizeof(packet_rcvd),
                                 1 * US_PER_SEC + DEFAULT_US_DELAY,
                                 &remote);
 
@@ -157,7 +152,7 @@ static void dtls_handle_read(dtls_context_t *ctx)
         return;
     }
 
-    dtls_handle_message(ctx, &session, packet_rcvd, (int)DTLS_MAX_BUF);
+    dtls_handle_message(ctx, &session, packet_rcvd, sizeof(packet_rcvd));
 }
 
 #ifdef DTLS_PSK
@@ -329,6 +324,9 @@ static ssize_t try_send(uint8_t *buf, size_t len)
 int client_init(char *addr_str)
 {
     dtls_init();
+    #ifdef TINYDTLS_LOG_LVL
+    dtls_set_log_level(TINYDTLS_LOG_LVL);
+    #endif
     mbox_init(&mbox, mbox_queue, sizeof(mbox_queue) / sizeof(mbox_queue[0]));
 
     /* First, we prepare the UDP Sock */
@@ -410,14 +408,12 @@ int client_init(char *addr_str)
 int client_send(char *data, size_t len)
 {
     ssize_t app_data_buf = len;               /* Upper layer packet to send */
-    char *client_payload;
-    if (strlen(data) > DTLS_MAX_BUF) {
+    if (len > DTLS_MAX_BUF - 100) {
         puts("ERROR: Exceeded max size of DTLS buffer.");
         return -1;
     }
-    client_payload = data;
     DEBUG("Sending (upper layer) data\n");
-    app_data_buf = try_send((uint8 *)client_payload, app_data_buf);
+    app_data_buf = try_send((uint8_t *)data, len);
     if (app_data_buf < 0) {
         puts("error sending packet");
         return -1;

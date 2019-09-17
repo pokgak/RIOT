@@ -69,6 +69,10 @@ static const credman_credential_t credential = {
 
 void *start_server(void *arg)
 {
+    #ifdef TINYDTLS_LOG_LVL
+    dtls_set_log_level(TINYDTLS_LOG_LVL);
+    #endif
+
     uint8_t rcv[DTLS_MAX_BUF];
     ssize_t res;
     sock_dtls_session_t session = {0};
