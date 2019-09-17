@@ -30,21 +30,19 @@ USEMODULE += gnrc_ipv6_default
 USEMODULE += gnrc_sock_udp
 # USEMODULE += gnrc_icmpv6_echo
 
-DEFAULT_CHANNEL ?= 20
+DEFAULT_CHANNEL ?= 21
 CFLAGS += -DIEEE802154_DEFAULT_CHANNEL=$(DEFAULT_CHANNEL)
 
 # Add also the shell, some shell commands
 USEMODULE += shell
 
 USEPKG += wolfssl
-USEMODULE += wolfcrypt
-USEMODULE += wolfssl
 USEMODULE += wolfssl_dtls
 USEMODULE += wolfssl_psk
 
 CFLAGS += -DHAVE_AESCCM -DWOLFSSL_AES_128
 CFLAGS += -Wno-unused-parameter -Wno-unused-variable
-CFLAGS += -DDEBUG_WOLFSSL
+# CFLAGS += -DDEBUG_WOLFSSL
 
 # UDP Port to use (20220 is default for DTLS).
 DTLS_PORT ?= 20220
@@ -69,7 +67,7 @@ CFLAGS += -DDTLS_MAX_BUF=$(DTLS_MAX_BUF)
 
 # FIXME: This is a temporary patch
 # TinyDTLS <= 0.8.6 requires around 426 bytes in RAM.
-CFLAGS += -DTHREAD_STACKSIZE_MAIN=\(3*THREAD_STACKSIZE_DEFAULT\)
+CFLAGS += -DTHREAD_STACKSIZE_MAIN=\(4*THREAD_STACKSIZE_DEFAULT\)
 # TINYDTLS_EXTRA_BUFF can be used for increasing the server stack memory.
 # CFLAGS += -DTINYDTLS_EXTRA_BUFF=\(512\)
 

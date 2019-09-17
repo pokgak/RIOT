@@ -30,7 +30,7 @@ USEMODULE += gnrc_ipv6_default
 USEMODULE += gnrc_sock_udp
 # USEMODULE += gnrc_icmpv6_echo
 
-DEFAULT_CHANNEL ?= 22
+DEFAULT_CHANNEL ?= 21
 CFLAGS += -DIEEE802154_DEFAULT_CHANNEL=$(DEFAULT_CHANNEL)
 
 # Add also the shell, some shell commands
