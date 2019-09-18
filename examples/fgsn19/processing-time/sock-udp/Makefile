@@ -28,7 +28,7 @@ USEMODULE += gnrc_icmpv6_error
 USEMODULE += gnrc_ipv6_default
 USEMODULE += gnrc_sock_udp
 
-DEFAULT_CHANNEL ?= 12
+DEFAULT_CHANNEL ?= 24
 CFLAGS += -DIEEE802154_DEFAULT_CHANNEL=$(DEFAULT_CHANNEL)
 
 # Comment this out to disable code in RIOT that does safety checking

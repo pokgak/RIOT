@@ -28,6 +28,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "thread.h"
 #include "log.h"
 
 #define SERVER_PORT 11111
@@ -36,6 +37,11 @@ extern const unsigned char server_cert[];
 extern const unsigned char server_key[];
 extern unsigned int server_cert_len;
 extern unsigned int server_key_len;
+
+char _dtls_server_stack[THREAD_STACKSIZE_MAIN +
+                        THREAD_EXTRA_STACKSIZE_PRINTF];
+
+static kernel_pid_t _dtls_server_pid = KERNEL_PID_UNDEF;
 
 static sock_tls_t skv;
 static sock_tls_t *sk = &skv;
@@ -83,19 +89,16 @@ static inline unsigned int my_psk_server_cb(WOLFSSL* ssl, const char* identity,
 
 #define APP_DTLS_BUF_SIZE 64
 
-int dtls_server(int argc, char **argv)
+void *dtls_server_wrapper(void *arg)
 {
     char buf[APP_DTLS_BUF_SIZE];
     int ret;
     sock_udp_ep_t local = SOCK_IPV6_EP_ANY;
     local.port = SERVER_PORT;
 
-    (void)argc;
-    (void)argv;
-
     if (sock_dtls_create(sk, &local, NULL, 0, wolfDTLSv1_2_server_method()) != 0) {
         LOG(LOG_ERROR, "ERROR: Unable to create DTLS sock\r\n");
-        return -1;
+        return (void*)NULL;
     }
 
 #ifndef MODULE_WOLFSSL_PSK
@@ -104,7 +107,7 @@ int dtls_server(int argc, char **argv)
                 server_cert_len, SSL_FILETYPE_ASN1 ) != SSL_SUCCESS)
     {
         LOG(LOG_ERROR, "Failed to load certificate from memory.\r\n");
-        return -1;
+        return (void*)NULL;
     }
 
     /* Load the private key */
@@ -112,7 +115,7 @@ int dtls_server(int argc, char **argv)
                 server_key_len, SSL_FILETYPE_ASN1 ) != SSL_SUCCESS)
     {
         LOG(LOG_ERROR, "Failed to load private key from memory.\r\n");
-        return -1;
+        return (void*)NULL;
     }
 #else
     wolfSSL_CTX_set_psk_server_callback(sk->ctx, my_psk_server_cb);
@@ -124,7 +127,7 @@ int dtls_server(int argc, char **argv)
     if (ret < 0)
     {
         LOG(LOG_ERROR, "Failed to create DTLS session (err: %s)\r\n", strerror(-ret));
-        return -1;
+        return (void*)NULL;
     }
 
     LOG(LOG_INFO, "Listening on %d\n", SERVER_PORT);
@@ -135,7 +138,7 @@ int dtls_server(int argc, char **argv)
             if (wolfSSL_get_error(sk->ssl, ret) != WOLFSSL_ERROR_WANT_READ) {
                 sock_dtls_session_destroy(sk);
                 if (sock_dtls_session_create(sk) < 0)
-                    return -1;
+                    return (void*)NULL;
             }
             continue;
         }
@@ -158,5 +161,15 @@ int dtls_server(int argc, char **argv)
         sock_dtls_close(sk);
         break;
     }
+    return 0;
+}
+
+int dtls_server(int argc, char **argv)
+{
+    _dtls_server_pid = thread_create(_dtls_server_stack,
+                                     sizeof(_dtls_server_stack),
+                                     THREAD_PRIORITY_MAIN - 1,
+                                     THREAD_CREATE_STACKTEST,
+                                     dtls_server_wrapper, NULL, "dtls_server");   
     return 0;
 }

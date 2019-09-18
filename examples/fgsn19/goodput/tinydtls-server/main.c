@@ -49,6 +49,7 @@ int main(void)
     msg_init_queue(_main_msg_queue, MAIN_QUEUE_SIZE);
     puts("TinyDTLS server for FGSN19 paper");
 
+    xtimer_sleep(2);
     _print_ip();
 
     /* TinyDTLS settings (Universal and called only one time by reboot) */

@@ -10,7 +10,7 @@
 static msg_t _main_msg_queue[MAIN_QUEUE_SIZE];
 
 #define SERVER_PORT (20220)
-#define SERVER_ADDR "fe80::7b76:7968:5ef6:617a"
+#define SERVER_ADDR "fe80::7b76:645c:f47e:8e1a"
 // #define SERVER_ADDR "fe80::6813:98ff:fe97:ab67"
 #define CLIENT_PORT (20220)
 
@@ -38,10 +38,10 @@ void run_exp(void)
         puts("ERROR: unable to parse destination address");
         return;
     }
-#define PAYLOAD_SIZE 300
-    for (int i = 0; i < PAYLOAD_SIZE / 50; i++) {
+#define PAYLOAD_SIZE 600
+    for (int i = 0; i < PAYLOAD_SIZE / 25; i++) {
         char data[PAYLOAD_SIZE];  // TODO: generate test data
-        size_t len2send = (i + 1) * 50;
+        size_t len2send = (i + 1) * 25;
         uint32_t start = xtimer_now_usec();
         if (sock_udp_send(&sock, data, len2send, &remote) < 0) {
             puts("Error sending message");

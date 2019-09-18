@@ -6,8 +6,9 @@
 #include "debug.h"
 
 /* exp values */
-uint16_t packet25, packet50,packet75, packet100, packet125, packet150;
-uint16_t packet175, packet200, packet225, packet250, packet275, packet300;
+#define INCREMENT (25)
+#define RECV_BUF 600
+uint16_t packets[(RECV_BUF) / INCREMENT];
 
 sock_udp_ep_t local = SOCK_IPV6_EP_ANY;
 sock_udp_t sock;
@@ -24,27 +25,14 @@ void *start_server(void *arg)
         return (void*)NULL;
     }
     while (1) {
-#define RECV_BUF 400
         char buf[RECV_BUF];
         ssize_t res = sock_udp_recv(&sock, buf, sizeof(buf), SOCK_NO_TIMEOUT, NULL);
         if (res < 0) {
             DEBUG("ERROR receiveing udp packet\n");
             continue;
         }
-        switch (res) {
-            case 25: packet25++; break;
-            case 50: packet50++; break;
-            case 75: packet75++; break;
-            case 100: packet100++; break;
-            case 125: packet125++; break;
-            case 150: packet150++; break;
-            case 175: packet175++; break;
-            case 200: packet200++; break;
-            case 225: packet225++; break;
-            case 250: packet250++; break;
-            case 275: packet275++; break;
-            case 300: packet300++; break;
-        }
+        int idx = (res / INCREMENT) - 1;
+        packets[idx] = packets[idx] + 1;
     }
 }
 
@@ -53,10 +41,14 @@ int result_cmd(int argc, char **argv)
     (void)argc;
     (void)argv;
     printf("BEGIN RESULT\n");
-    printf("25,50,75,100,125,150,175,200,225,250,275,300\n");
-    printf("%u,%u,%u,%u,%u,%u,%u,%u,%u,%u,%u,%u\n",
-        packet25, packet50, packet75, packet100, packet125, packet150,
-        packet175, packet200, packet225, packet250, packet275, packet300);
+    for (int i = 1; i <= (RECV_BUF) / INCREMENT; i++) {
+        printf("%d,", i * INCREMENT);
+    }
+    puts("");
+    for (int i = 0; i < (RECV_BUF) / INCREMENT; i++) {
+        printf("%d,", packets[i]);
+    }
+    puts("");
     printf("END RESULT\n");
     return 0;
 }

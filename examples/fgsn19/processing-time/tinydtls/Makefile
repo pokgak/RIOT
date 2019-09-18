@@ -31,7 +31,7 @@ USEMODULE += gnrc_sock_udp
 
 USEPKG += tinydtls
 
-DEFAULT_CHANNEL ?= 19
+DEFAULT_CHANNEL ?= 20
 CFLAGS += -DIEEE802154_DEFAULT_CHANNEL=$(DEFAULT_CHANNEL)
 
 # UDP Port to use (20220 is default for DTLS).
@@ -48,7 +48,7 @@ CFLAGS += -DDTLS_PSK
 # Values: 0:EMERG (Default), 1:ALERT 2:CRIT 3:WARN 4:NOTICE 5:INFO 6:DEBUG
 # TINYDTLS_LOG ?= 6
 
-DTLS_MAX_BUF ?= 1100
+DTLS_MAX_BUF ?= 700
 CFLAGS += -DDTLS_MAX_BUF=$(DTLS_MAX_BUF)
 
 # Enable this line for setting tinyDTLS in debug mode.

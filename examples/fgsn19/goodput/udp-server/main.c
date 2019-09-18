@@ -66,6 +66,7 @@ int main(void)
      * receive potentially fast incoming networking packets */
     msg_init_queue(_main_msg_queue, MAIN_QUEUE_SIZE);
     puts("FGSN19 sock_udp server");
+    xtimer_sleep(3);
     _print_ip();
 
     puts("Starting server");

@@ -30,7 +30,7 @@ USEMODULE += gnrc_ipv6_default
 USEMODULE += gnrc_sock_udp
 # USEMODULE += gnrc_icmpv6_echo
 
-DEFAULT_CHANNEL ?= 19
+DEFAULT_CHANNEL ?= 20
 CFLAGS += -DIEEE802154_DEFAULT_CHANNEL=$(DEFAULT_CHANNEL)
 
 # Add also the shell, some shell commands
@@ -50,14 +50,14 @@ CFLAGS += -DDTLS_PSK
 
 # Define the log entry for the tinydtls package.
 # Values: 0:EMERG (Default), 1:ALERT 2:CRIT 3:WARN 4:NOTICE 5:INFO 6:DEBUG
-TINYDTLS_LOG ?= 6
+# TINYDTLS_LOG ?= 6
 
-DTLS_MAX_BUF ?= 1100
+DTLS_MAX_BUF ?= 700
 CFLAGS += -DDTLS_MAX_BUF=$(DTLS_MAX_BUF)
 
 # Enable this line for setting tinyDTLS in debug mode.
 # This overrides TINYDTLS_LOG to 6
-# CFLAGS += -DTINYDTLS_DEBUG
+CFLAGS += -DTINYDTLS_DEBUG
 
 # FIXME: This is a temporary patch
 # TinyDTLS <= 0.8.6 requires around 426 bytes in RAM.
