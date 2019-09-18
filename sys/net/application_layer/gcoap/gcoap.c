@@ -136,10 +136,8 @@ static ssize_t _tl_send(sock_dtls_t *sock, const void *data, size_t len,
 static ssize_t _tl_recv(sock_dtls_t *sock, void *data, size_t max_len,
                      uint32_t timeout, sock_udp_ep_t *remote)
 {
-    printf("gcoap timeout: %u\n", timeout);
     sock_dtls_session_t session = {0};
     ssize_t res = sock_dtls_recv(sock, &session, data, max_len, timeout);
-    printf("gcoap: sock_dtls_recv res: %d\n", res);
     if (res < 0) {
         return res;
     }
