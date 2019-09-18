@@ -31,7 +31,7 @@ BOARD_INSUFFICIENT_MEMORY := arduino-duemilanove arduino-leonardo \
 USEMODULE += gnrc_netdev_default
 USEMODULE += auto_init_gnrc_netif
 # Specify the mandatory networking modules
-USEMODULE += gnrc_ipv6_default
+USEMODULE += gnrc_ipv6_router_default
 USEMODULE += gcoap
 # Additional networking modules that can be dropped if not needed
 USEMODULE += gnrc_icmpv6_echo
@@ -39,16 +39,14 @@ USEMODULE += gnrc_icmpv6_echo
 # DTLS configuration
 # Choose which DTLS stack to use
 USEMODULE += tinydtls_sock_dtls # tinyDTLS
+
 CFLAGS += -DDTLS_PSK
-# USEMODULE += wolfssl_sock_dtls # wolfSSL
-# USEMODULE += wolfssl_psk
-CFLAGS += -DWOLFSSL_EITHER_SIDE
+#USEMODULE += wolfssl_sock_dtls # wolfSSL
 # DTLS will need at least (THREAD_STACKSIZE_DEFAULT+1024) as stack size
 CFLAGS += -DTHREAD_STACKSIZE_MAIN=\(3*THREAD_STACKSIZE_DEFAULT\)
+CFLAGS += -DGCOAP_PDU_BUF_SIZE=256
 # Uncomment to enable debug logs when using DTLS
-# CFLAGS += -DDTLS_DEBUG -DDEBUG_WOLFSSL
-# wolfssl flags
-CFLAGS += -Wno-unused-parameter -Wno-unused-variable
+# CFLAGS += -DDTLS_DEBUG
 
 # Required by gcoap example
 USEMODULE += od
@@ -57,6 +55,9 @@ USEMODULE += fmt
 USEMODULE += shell
 USEMODULE += shell_commands
 USEMODULE += ps
+USEMODULE += netstats_l2
+USEMODULE += netstats_ipv6
+USEMODULE += netstats_rpl
 
 # Comment this out to disable code in RIOT that does safety checking
 # which is not needed in a production environment but helps in the

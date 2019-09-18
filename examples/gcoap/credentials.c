@@ -22,12 +22,12 @@
  */
 
 // #ifdef MODULE_SOCK_DTLS
-#if defined(DTLS_PSK) || defined(MODULE_WOLFSSL_PSK)
-const char psk_key[] = "LGPLisyourfriend";
-const char psk_id[] = "RIOTer";
+#ifdef DTLS_PSK
+const char psk_key[] = "secretPSK";
+const char psk_id[] = "Client_identity";
 const unsigned psk_key_len = sizeof(psk_key) - 1;
 const unsigned psk_id_len = sizeof(psk_id) - 1;
-#endif /* DTLS_PSK || MODULE_WOLFSSL_PSK */
+#endif /* DTLS_PSK */
 
 #ifdef DTLS_ECC
 const unsigned char ecdsa_priv_key[] = {
