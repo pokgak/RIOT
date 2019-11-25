@@ -236,6 +236,11 @@ extern const saul_driver_t bmx280_temperature_saul_driver;
  */
 extern const saul_driver_t bmx280_pressure_saul_driver;
 
+/**
+ * @brief   Export of SAUL interface for mean atmospheric pressure difference
+ */
+extern const saul_driver_t bme280_pressure_mapd_saul_driver;
+
 #if defined(MODULE_BME280_SPI) || defined(MODULE_BME280_I2C)
 /**
  * @brief   Export of SAUL interface for humidity sensor

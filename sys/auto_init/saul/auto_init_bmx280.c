@@ -37,9 +37,9 @@ static bmx280_t bmx280_devs[BMX280_NUMOF];
  * @brief   Memory for the SAUL registry entries
  */
 #if defined(MODULE_BME280_SPI) || defined(MODULE_BME280_I2C)
-#define SENSORS_NUMOF 3
+#define SENSORS_NUMOF 4
 #else
-#define SENSORS_NUMOF 2
+#define SENSORS_NUMOF 3
 #endif
 static saul_reg_t saul_entries[BMX280_NUMOF * SENSORS_NUMOF];
 
@@ -65,6 +65,13 @@ void auto_init_bmx280(void)
         saul_entries[se_ix].dev = &bmx280_devs[i];
         saul_entries[se_ix].name = bmx280_saul_reg_info[i].name;
         saul_entries[se_ix].driver = &bmx280_pressure_saul_driver;
+        saul_reg_add(&saul_entries[se_ix]);
+        se_ix++;
+
+        /* pressure relative relativ sea level pressure */
+        saul_entries[se_ix].dev = &bmx280_devs[i];
+        saul_entries[se_ix].name = bmx280_saul_reg_info[i].name;
+        saul_entries[se_ix].driver = &bme280_pressure_mapd_saul_driver;
         saul_reg_add(&saul_entries[se_ix]);
         se_ix++;
 

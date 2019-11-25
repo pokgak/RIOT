@@ -33,6 +33,16 @@ static int read_temperature(const void *dev, phydat_t *res)
     return 1;
 }
 
+static int read_pressure_mapd(const void *dev, phydat_t *res)
+{
+    bmx280_read_pressure(dev);
+    res->val[0] = bmx280_read_pressure((const bmx280_t *)dev) - PAD_BASE_PRESSURE_PA;
+    res->unit = UNIT_PAD;
+    res->scale = 0;
+
+    return 1;
+}
+
 static int read_pressure(const void *dev, phydat_t *res)
 {
     res->val[0] = bmx280_read_pressure((bmx280_t *)dev) / 100;
@@ -61,6 +71,12 @@ const saul_driver_t bmx280_temperature_saul_driver = {
 
 const saul_driver_t bmx280_pressure_saul_driver = {
     .read = read_pressure,
+    .write = saul_notsup,
+    .type = SAUL_SENSE_PRESS,
+};
+
+const saul_driver_t bme280_pressure_mapd_saul_driver = {
+    .read = read_pressure_mapd,
     .write = saul_notsup,
     .type = SAUL_SENSE_PRESS,
 };
