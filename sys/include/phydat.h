@@ -61,6 +61,11 @@ extern "C" {
 #define PHYDAT_SCALE_STR_MAXLEN     (sizeof("*E-128\0"))
 
 /**
+ * @brief   Mean atmospheric pressure at sea level (101 325 Pa, defined at DIN 1343 )
+ */
+#define PAD_BASE_PRESSURE_PA        (101325)
+
+/**
  * @brief   Definition of physical units and comparable data types
  *
  * This list should contain all needed physical units (e.g. SI units), but also
@@ -104,6 +109,8 @@ enum {
     /* pressure */
     UNIT_BAR,       /**< Beer? */
     UNIT_PA,        /**< Pascal */
+    UNIT_PAD,       /**< Pascal difference value from international standard
+                     *   pressure value (101325 Pascal) [currentval - standardval] */
     /* light */
     UNIT_CD,        /**< Candela */
     /* logical */
