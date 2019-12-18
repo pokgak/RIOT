@@ -20,7 +20,7 @@
 #include "net/sock/dtls.h"
 #include "net/credman.h"
 
-#define ENABLE_DEBUG (0)
+#define ENABLE_DEBUG (1)
 #include "debug.h"
 #include "dtls_debug.h"
 
@@ -304,6 +304,7 @@ int sock_dtls_session_create(sock_dtls_t *sock, const sock_udp_ep_t *ep,
     }
     else if (res == 0) {
         DEBUG("sock_dtls: session already exist. Skip establishing session\n");
+        // dtls_rene
         return 0;
     }
 
@@ -311,7 +312,7 @@ int sock_dtls_session_create(sock_dtls_t *sock, const sock_udp_ep_t *ep,
     while (!mbox_try_get(&sock->mbox, &msg) ||
             msg.type != DTLS_EVENT_CONNECTED) {
         res = sock_udp_recv(sock->udp_sock, rcv_buffer, sizeof(rcv_buffer),
-                            DTLS_HANDSHAKE_TIMEOUT, &remote->ep);
+                            5 * US_PER_SEC, &remote->ep);
         if (res <= 0) {
             DEBUG("sock_dtls: error receiving handshake messages: %zd\n", res);
             /* deletes peer created in dtls_connect() */
@@ -421,6 +422,10 @@ ssize_t sock_dtls_recv(sock_dtls_t *sock, sock_dtls_session_t *remote,
         _ep_to_session(&remote->ep, &remote->dtls_session);
         res = dtls_handle_message(sock->dtls_ctx, &remote->dtls_session,
                                   (uint8_t *)data, res);
+        if (res < 0) {
+            xtimer_remove(&timeout_timer);
+            return -1;
+        }
 
         /* reset msg type */
         msg_t msg;

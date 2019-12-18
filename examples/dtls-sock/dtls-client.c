@@ -68,12 +68,15 @@ static const credman_credential_t credential = {
 };
 #endif
 
+sock_udp_t udp_sock;
+sock_dtls_t dtls_sock;
+sock_dtls_session_t session;
+int session_created = 0;
+int try_count = 0;
+
 static int client_send(char *addr_str, char *data, size_t datalen)
 {
     ssize_t res;
-    sock_udp_t udp_sock;
-    sock_dtls_t dtls_sock;
-    sock_dtls_session_t session;
     sock_udp_ep_t remote;
     sock_udp_ep_t local = SOCK_IPV6_EP_ANY;
     local.port = 12345;
@@ -102,53 +105,66 @@ static int client_send(char *addr_str, char *data, size_t datalen)
         return -1;
     }
 
-    if (sock_udp_create(&udp_sock, &local, NULL, 0) < 0) {
-        puts("Error creating UDP sock");
-        return -1;
-    }
-
-    if (sock_dtls_create(&dtls_sock, &udp_sock,
-                         SOCK_DTLS_CLIENT_TAG,
-                         SOCK_DTLS_1_2, SOCK_DTLS_CLIENT) < 0) {
-        puts("Error creating DTLS sock");
-        sock_udp_close(&udp_sock);
-        return -1;
-    }
-
-    res = credman_add(&credential);
-    if (res < 0 && res != CREDMAN_EXIST) {
-        /* ignore duplicate credentials */
-        printf("Error cannot add credential to system: %zd\n", res);
-        return -1;
-    }
-
-    res = sock_dtls_session_create(&dtls_sock, &remote, &session);
-    if (res < 0) {
-        printf("Error creating session: %zd\n", res);
-        sock_dtls_close(&dtls_sock);
-        sock_udp_close(&udp_sock);
-        return -1;
-    }
-
-    if (sock_dtls_send(&dtls_sock, &session, data, datalen) < 0) {
-        puts("Error sending data");
-    }
-    else {
-        printf("Sent DTLS message\n");
-
-        uint8_t rcv[512];
-        if (sock_dtls_recv(&dtls_sock, &session, rcv, sizeof(rcv), SOCK_NO_TIMEOUT) < 0) {
-            printf("Error receiving DTLS message\n");
+    if (session_created == 0) {
+        if (sock_udp_create(&udp_sock, &local, NULL, 0) < 0) {
+            puts("Error creating UDP sock");
+            return -1;
         }
-        else {
-            printf("Received DTLS message\n");
+
+        if (sock_dtls_create(&dtls_sock, &udp_sock,
+                            SOCK_DTLS_CLIENT_TAG,
+                            SOCK_DTLS_1_2, SOCK_DTLS_CLIENT) < 0) {
+            puts("Error creating DTLS sock");
+            sock_udp_close(&udp_sock);
+            return -1;
+        }
+
+        res = credman_add(&credential);
+        if (res < 0 && res != CREDMAN_EXIST) {
+            /* ignore duplicate credentials */
+            printf("Error cannot add credential to system: %zd\n", res);
+            return -1;
+        }
+
+        res = sock_dtls_session_create(&dtls_sock, &remote, &session);
+        if (res < 0) {
+            printf("Error creating session: %zd\n", res);
+            sock_dtls_close(&dtls_sock);
+            sock_udp_close(&udp_sock);
+            return -1;
+        }
+
+        session_created = 1;
+    }
+
+    if (try_count != 0) {
+        res = sock_dtls_session_create(&dtls_sock, &remote, &session);
+        if (res < 0) {
+            printf("error reconnecting session\n");
         }
     }
 
-    puts("Terminating");
-    sock_dtls_session_destroy(&dtls_sock, &session);
-    sock_dtls_close(&dtls_sock);
-    sock_udp_close(&udp_sock);
+    if (try_count == 0 || res >= 0) {
+        res = sock_dtls_send(&dtls_sock, &session, data, datalen);
+        if (res >= 0) {
+            try_count++;
+        }
+    }
+
+    printf("Sent DTLS message\n");
+
+    // uint8_t rcv[512];
+    // if (sock_dtls_recv(&dtls_sock, &session, rcv, sizeof(rcv), SOCK_NO_TIMEOUT) < 0) {
+    //     printf("Error receiving DTLS message\n");
+    // }
+    // else {
+    //     printf("Received DTLS message\n");
+    // }
+
+    // puts("Terminating");
+    // sock_dtls_session_destroy(&dtls_sock, &session);
+    // sock_dtls_close(&dtls_sock);
+    // sock_udp_close(&udp_sock);
     return 0;
 }
 
