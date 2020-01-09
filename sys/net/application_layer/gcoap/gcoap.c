@@ -197,6 +197,15 @@ static void *_event_loop(void *arg)
 
         if (res > 0) {
             switch (msg_rcvd.type) {
+            case GCOAP_MSG_TYPE_AGAIN: {
+                gcoap_request_memo_t *memo = (gcoap_request_memo_t *)msg_rcvd.content.ptr;
+                ssize_t bytes = _tl_send(&_tl_sock,
+                                             memo->msg.data.pdu_buf,
+                                             memo->msg.data.pdu_len,
+                                             &memo->remote_ep);
+                printf("bytes: %zd\n", bytes);
+                break;
+            }
             case GCOAP_MSG_TYPE_TIMEOUT: {
                 gcoap_request_memo_t *memo = (gcoap_request_memo_t *)msg_rcvd.content.ptr;
 
@@ -269,6 +278,8 @@ static void _listen(coap_tl_sock_t *sock)
 #endif
         return;
     }
+
+    /* handle dtls_handle_message() return value? */
 
     res = coap_parse(&pdu, _listen_buf, res);
     if (res < 0) {
@@ -793,6 +804,12 @@ ssize_t gcoap_finish(coap_pkt_t *pdu, size_t payload_len, unsigned format)
     return pdu->payload_len + (pdu->payload - (uint8_t *)pdu->hdr);
 }
 
+int is_new_dtls_handshake(const sock_udp_ep_t *remote)
+{
+    (void)remote;
+    return 1;
+}
+
 size_t gcoap_req_send(const uint8_t *buf, size_t len,
                       const sock_udp_ep_t *remote,
                       gcoap_resp_handler_t resp_handler, void *context)
@@ -805,13 +822,20 @@ size_t gcoap_req_send(const uint8_t *buf, size_t len,
 
     /* Only allocate memory if necessary (i.e. if user is interested in the
      * response or request is confirmable) */
-    if ((resp_handler != NULL) || (msg_type == COAP_TYPE_CON)) {
+    if (is_new_dtls_handshake(remote) || (resp_handler != NULL) || (msg_type == COAP_TYPE_CON)) {
         mutex_lock(&_coap_state.lock);
         /* Find empty slot in list of open requests. */
         for (int i = 0; i < GCOAP_REQ_WAITING_MAX; i++) {
             if (_coap_state.open_reqs[i].state == GCOAP_MEMO_UNUSED) {
                 memo = &_coap_state.open_reqs[i];
-                memo->state = GCOAP_MEMO_WAIT;
+
+                if (is_new_dtls_handshake(remote)) {
+                    /* set memo to resend this message after handshake done */
+                    memo->state = GCOAP_MEMO_AGAIN;
+                }
+                else {
+                    memo->state = GCOAP_MEMO_WAIT;
+                }
                 break;
             }
         }
@@ -821,9 +845,27 @@ size_t gcoap_req_send(const uint8_t *buf, size_t len,
             return 0;
         }
 
-        memo->resp_handler = resp_handler;
-        memo->context = context;
+        if (memo->state != GCOAP_MEMO_AGAIN) {
+            memo->resp_handler = resp_handler;
+            memo->context = context;
+        }
+
         memcpy(&memo->remote_ep, remote, sizeof(sock_udp_ep_t));
+
+        if (is_new_dtls_handshake(remote)) {
+            memo->msg.data.pdu_buf = NULL;
+            for (int i = 0; i < GCOAP_RESEND_BUFS_MAX; i++) {
+                if (!_coap_state.resend_bufs[i][0]) {
+                    memo->msg.data.pdu_buf = &_coap_state.resend_bufs[i][0];
+                    memcpy(memo->msg.data.pdu_buf, buf, GCOAP_PDU_BUF_SIZE);
+                    memo->msg.data.pdu_len = len;
+                    break;
+                }
+            }
+#define DTLS_HANDSHAKE_TIMEOUT  3 * US_PER_SEC;
+            timeout = DTLS_HANDSHAKE_TIMEOUT;
+            goto done;
+        }
 
         switch (msg_type) {
         case COAP_TYPE_CON:
@@ -861,6 +903,7 @@ size_t gcoap_req_send(const uint8_t *buf, size_t len,
             DEBUG("gcoap: illegal msg type %u\n", msg_type);
             break;
         }
+done:
         mutex_unlock(&_coap_state.lock);
         if (memo->state == GCOAP_MEMO_UNUSED) {
             return 0;
@@ -869,6 +912,10 @@ size_t gcoap_req_send(const uint8_t *buf, size_t len,
 
     /* Memos complete; send msg and start timer */
     ssize_t res = _tl_send(&_tl_sock, buf, len, remote);
+    if (res == 1) {
+        /* dtls handshake initiated, set memo to send message again later */
+        DEBUG("DTLS ClientHello sent\n");
+    }
 
     /* timeout may be zero for non-confirmable */
     if ((memo != NULL) && (res > 0) && (timeout > 0)) {
@@ -884,8 +931,16 @@ size_t gcoap_req_send(const uint8_t *buf, size_t len,
         mbox_msg.type          = GCOAP_MSG_TYPE_INTR;
         mbox_msg.content.value = 0;
         if (mbox_try_put(&_udp_sock.reg.mbox, &mbox_msg)) {
-            /* start response wait timer on the gcoap thread */
-            memo->timeout_msg.type        = GCOAP_MSG_TYPE_TIMEOUT;
+            if (res == 1) {
+                DEBUG("set timer MEMO_AGAIN to resend after handshake\n");
+                /* set timer for MEMO_AGAIN here */
+                memo->timeout_msg.type = GCOAP_MSG_TYPE_AGAIN;
+            }
+            else {
+                /* start response wait timer on the gcoap thread */
+                memo->timeout_msg.type        = GCOAP_MSG_TYPE_TIMEOUT;
+            }
+
             memo->timeout_msg.content.ptr = (char *)memo;
             xtimer_set_msg(&memo->response_timer, timeout, &memo->timeout_msg, _pid);
         }

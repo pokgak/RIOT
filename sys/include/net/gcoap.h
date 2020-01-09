@@ -498,6 +498,7 @@ extern "C" {
 #define GCOAP_MEMO_RESP         (2)     /**< Got response */
 #define GCOAP_MEMO_TIMEOUT      (3)     /**< Timeout waiting for response */
 #define GCOAP_MEMO_ERR          (4)     /**< Error processing response packet */
+#define GCOAP_MEMO_AGAIN        (5)     /**< Send this request again */
 /** @} */
 
 /**
@@ -549,6 +550,8 @@ extern "C" {
  * Allows the event loop to process IPC messages.
  */
 #define GCOAP_MSG_TYPE_INTR     (0x1502)
+
+#define GCOAP_MSG_TYPE_AGAIN    (0x1503)
 
 /**
  * @ingroup net_gcoap_conf
