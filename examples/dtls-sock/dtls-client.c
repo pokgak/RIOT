@@ -130,13 +130,17 @@ static int client_send(char *addr_str, char *data, size_t datalen)
         return -1;
     }
 
-    if (sock_dtls_send(&dtls_sock, &session, data, datalen) < 0) {
+    uint8_t rcv[512];
+    /* First receive all handshake messages */
+    if (sock_dtls_recv(&dtls_sock, &session, rcv, sizeof(rcv), 1 * US_PER_SEC) < 0) {
+        printf("Error receiving DTLS handshake messages\n");
+    }
+    else if (sock_dtls_send(&dtls_sock, &session, data, datalen) < 0) {
         puts("Error sending data");
     }
     else {
         printf("Sent DTLS message\n");
 
-        uint8_t rcv[512];
         if (sock_dtls_recv(&dtls_sock, &session, rcv, sizeof(rcv), SOCK_NO_TIMEOUT) < 0) {
             printf("Error receiving DTLS message\n");
         }

@@ -114,8 +114,8 @@ void *dtls_server_wrapper(void *arg)
         else {
             res = sock_dtls_recv(&sock, &session, rcv, sizeof(rcv),
                                   10 * US_PER_SEC);
-            if (res < 0) {
-                if (res != -ETIMEDOUT) {
+            if (res <= 0) {
+                if (res != -ETIMEDOUT || res != 0) {
                     printf("Error receiving UDP over DTLS %zd", res);
                 }
                 continue;
