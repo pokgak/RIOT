@@ -39,16 +39,9 @@
 #endif
 
 #define CLIENT_PORT DTLS_DEFAULT_PORT + 1
-#define MAX_TIMES_TRY_TO_SEND 10 /* Expected to be 1 - 255 */
-
-/* Delay to give time to the remote peer to do the compute (client only). */
-#ifdef CONFIG_DTLS_ECC
-#define DEFAULT_US_DELAY 10000000
-#else
-#define DEFAULT_US_DELAY 100
-#endif
 
 static int dtls_connected = 0; /* This is handled by Tinydtls callbacks */
+static int echo_received = 0;
 
 /* TinyDTLS callback for detecting the state of the DTLS channel. */
 static int _events_handler(struct dtls_context_t *ctx,
@@ -108,7 +101,7 @@ static int dtls_handle_read(dtls_context_t *ctx)
     }
 
     ssize_t res = sock_udp_recv(sock, packet_rcvd, sizeof(packet_rcvd),
-                                1 * US_PER_SEC + DEFAULT_US_DELAY, &remote);
+                                SOCK_NO_TIMEOUT, &remote);
 
     if (res <= 0) {
         if ((ENABLE_DEBUG) && (res != -EAGAIN) && (res != -ETIMEDOUT)) {
@@ -242,6 +235,8 @@ static int _read_from_peer_handler(struct dtls_context_t *ctx,
     for (size_t i = 0; i < len; i++)
         printf("%c", data[i]);
     puts(" --");
+
+    echo_received = 1;
 
     /*
      * NOTE: To answer the other peer uses dtls_write(). E.g.
@@ -381,7 +376,6 @@ static void client_send(char *addr_str, char *data)
     sock_udp_ep_t remote = SOCK_IPV6_EP_ANY;
     sock_udp_t sock;
 
-    uint8_t watch = MAX_TIMES_TRY_TO_SEND;
     ssize_t app_data_buf = 0;               /* Upper layer packet to send */
 
     /* NOTE: dtls_init() must be called previous to this (see main.c) */
@@ -421,11 +415,8 @@ static void client_send(char *addr_str, char *data)
 
     /*
      * This loop transmits all the DTLS records involved in the DTLS session.
-     * Including the real (upper) data to send and to receive. There is a
-     * watchdog if the remote peer stop answering.
-     *
-     * Max lifetime expected for a DTLS handshake is 10 sec. This is reflected
-     * with the variable watch and the timeout for sock_udp_recv().
+     * Including the real (upper) data to send and to receive. The loop ends
+     * when the client received back the message sent to the server or errors.
      *
      * NOTE: DTLS Sessions can handles more than one single node but by
      *       default is limited to a single peer with a single context and
@@ -433,16 +424,14 @@ static void client_send(char *addr_str, char *data)
      *       See tinydtls/platform-specific/riot_boards.h for more info.
      * NOTE: DTLS_DEFAULT_MAX_RETRANSMIT has an impact here.
      */
-    while ((app_data_buf > 0) && (watch > 0)) {
-
+    while (!echo_received) {
         /*  DTLS Session must be established before sending our data */
         if (dtls_connected) {
             DEBUG("Sending (upper layer) data\n");
             app_data_buf = try_send(dtls_context, &dst,
                                     (uint8 *)client_payload, app_data_buf);
-
-            if (app_data_buf == 0) { /* Client only transmit data one time. */
-                watch = 0;
+            if (app_data_buf < 0) {
+                break;
             }
         }
 
@@ -452,8 +441,11 @@ static void client_send(char *addr_str, char *data)
             printf("Received error during message handling\n");
             break;
         }
-        watch--;
     } /* END while */
+
+    if (app_data_buf != 0 || !echo_received) {
+        printf("Failed to send/receive data\n");
+    }
 
     /*
      * BUG: tinyDTLS (<= 0.8.6)
@@ -471,6 +463,7 @@ static void client_send(char *addr_str, char *data)
     dtls_free_context(dtls_context); /* This also sends a DTLS Alert record */
     sock_udp_close(&sock);
     dtls_connected = 0;
+    echo_received = 0;
     DEBUG("Client DTLS session finished\n");
 
     return;
